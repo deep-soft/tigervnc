@@ -1,0 +1,209 @@
+# 2023-10-23 23:00
+#
+name: act-Build
+
+# on: [push, pull_request]
+on:
+  workflow_dispatch:
+env:
+  TAG_NAME:      "Release"
+  TAG_VERSION:   "v1.0.0"
+  TAG_BUILD:     "-b"
+  TAG_REF:       "0000000"
+  PROG_NAME:     "TigerVNC"
+  PROG_VERSION:  "v1.0.0"
+  VERSION:       "1.0.0"
+  DRAFT:         false
+  DEBUG_LS:      "yes"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: deep-soft/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfltk1.3-dev fluid gettext appstream
+          sudo apt-get install -y libgnutls28-dev nettle-dev libgmp-dev
+          sudo apt-get install -y libxtst-dev libxdamage-dev libxfixes-dev libxrandr-dev libpam-dev
+          sudo apt-get install -y libavcodec-dev libavutil-dev libswscale-dev
+      - name: Configure
+        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+      - name: Build
+        working-directory: build
+        run: make
+      - name: Install
+        working-directory: build
+        run: make tarball
+      - uses: deep-soft/upload-artifact@v3
+        with:
+          name: Linux (Ubuntu)
+          path: build/tigervnc-*.tar.gz
+
+      - name: Publish Release
+        continue-on-error: true
+        uses: deep-soft/release-action@v1
+        with:
+          #tag: ${{github.ref_name}}
+          draft: ${{ env.DRAFT }}
+          tag: ${{ env.TAG_NAME }}
+          allowUpdates: true
+          artifacts: |
+            build/tigervnc-*.tar.gz
+            ${{ env.ASSET_SRC }}
+            ${{ env.ASSET_SRC1 }}
+
+
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: deep-soft/checkout@v4
+      - uses: msys2/setup-msys2@v2
+      - name: Install dependencies
+        run: |
+          pacman --sync --noconfirm --needed \
+            make mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+          pacman --sync --noconfirm --needed \
+            mingw-w64-x86_64-fltk mingw-w64-x86_64-libjpeg-turbo \
+            mingw-w64-x86_64-gnutls mingw-w64-x86_64-pixman \
+            mingw-w64-x86_64-nettle mingw-w64-x86_64-gmp
+      - name: Configure
+        run: cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -S . -B build
+      - name: Build
+        working-directory: build
+        run: make
+      - name: Install
+        working-directory: build
+        env:
+          MSYS2_PATH_TYPE: inherit
+        run: make installer winvnc_installer
+      - uses: deep-soft/upload-artifact@v3
+        with:
+          name: Windows
+          path: build/release/tigervnc*.exe
+      - name: Publish Release
+        continue-on-error: true
+        uses: deep-soft/release-action@v1
+        with:
+          #tag: ${{github.ref_name}}
+          draft: ${{ env.DRAFT }}
+          tag: ${{ env.TAG_NAME }}
+          allowUpdates: true
+          artifacts: |
+            build/release/tigervnc*.exe
+            ${{ env.ASSET_SRC }}
+            ${{ env.ASSET_SRC1 }}
+
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: deep-soft/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install fltk pixman ffmpeg
+          brew install gnutls nettle gmp
+      - name: Configure
+        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+      - name: Build
+        working-directory: build
+        run: make
+      - name: Install
+        working-directory: build
+        run: make dmg
+      - uses: deep-soft/upload-artifact@v4
+        with:
+          name: macOS
+          path: build/TigerVNC-*.dmg
+      - name: Publish Release
+        continue-on-error: true
+        uses: deep-soft/release-action@v1
+        with:
+          #tag: ${{github.ref_name}}
+          draft: ${{ env.DRAFT }}
+          tag: ${{ env.TAG_NAME }}
+          allowUpdates: true
+          artifacts: |
+            build/TigerVNC-*.dmg
+            ${{ env.ASSET_SRC }}
+            ${{ env.ASSET_SRC1 }}
+
+  build-java:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        java: [ '8', '11', '16' ]
+    steps:
+      - uses: deep-soft/checkout@v4
+      - name: Setup java
+        uses: deep-soft/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+      - name: Configure
+        working-directory: java
+        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+      - name: Build
+        working-directory: java/build
+        run: make
+      - uses: deep-soft/upload-artifact@v3
+        with:
+          name: Java (${{ matrix.java }})
+          path: java/build/VncViewer.jar
+      - name: Publish Release
+        continue-on-error: true
+        uses: deep-soft/release-action@v1
+        with:
+          #tag: ${{github.ref_name}}
+          draft: ${{ env.DRAFT }}
+          tag: ${{ env.TAG_NAME }}
+          allowUpdates: true
+          artifacts: |
+            java/build/VncViewer.jar
+            ${{ env.ASSET_SRC }}
+            ${{ env.ASSET_SRC1 }}
+
+  build-packages:
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        target:
+          - centos7
+          - rocky8
+          - rocky9
+          - bionic
+          - focal
+          - jammy
+      fail-fast: false
+    runs-on: ubuntu-latest
+    env:
+      DOCKER: ${{ matrix.target }}
+    steps:
+      - uses: deep-soft/checkout@v4
+      - name: Build image
+        run: docker build -t tigervnc/$DOCKER .github/containers/$DOCKER
+      - name: Build packages
+        run: .github/containers/$DOCKER/build.sh
+      - uses: deep-soft/upload-artifact@v3
+        with:
+          name: Packages (${{ matrix.target }})
+          path: .github/containers/${{ matrix.target }}/result
+      - name: Publish Release
+        continue-on-error: true
+        uses: deep-soft/release-action@v1
+        with:
+          #tag: ${{github.ref_name}}
+          draft: ${{ env.DRAFT }}
+          tag: ${{ env.TAG_NAME }}
+          allowUpdates: true
+          artifacts: |
+            .github/containers/${{ matrix.target }}/result
+            ${{ env.ASSET_SRC }}
+            ${{ env.ASSET_SRC1 }}
