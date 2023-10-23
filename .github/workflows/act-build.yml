@@ -1,4 +1,4 @@
-# 2023-10-23 23:00
+# 2023-10-24 00:00
 #
 name: act-Build
 
@@ -6,7 +6,7 @@ name: act-Build
 on:
   workflow_dispatch:
 env:
-  TAG_NAME:      "Release"
+  TAG_NAME:      "TigerVNC"
   TAG_VERSION:   "v1.0.0"
   TAG_BUILD:     "-b"
   TAG_REF:       "0000000"
@@ -17,11 +17,76 @@ env:
   DEBUG_LS:      "yes"
 
 jobs:
-  build-linux:
+  program-version:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: deep-soft/checkout@v4
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+# - get program version begin
+      - name: get program version
+        shell: bash
+        run: |
+          _prog_version_=$(grep "set(VERSION " CMakeLists.txt  | awk "{print $2}" | awk -F) "{print $1}")
+          echo "VERSION=$_prog_version_" >> $GITHUB_ENV
+          echo "PROG_VERSION=v$_prog_version_" >> $GITHUB_ENV
+          echo "TAG_VERSION=v$_prog_version_" >> $GITHUB_ENV
+
+      - name: print program version
+        shell: bash
+        run: |
+          echo "VERSION=${{ env.VERSION }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "TAG_VERSION=${{ env.TAG_VERSION }}"
+# - get program version begin
+
+# - get ref set build begin
+      - name: Get ref, set build version
+        shell: bash
+        run: |
+          _ref_all_=$(git log -1 --format='%H')
+          # _ref_=$(echo ${_ref_all_::7})
+          _ref_org_=${{ env.TAG_REF }}
+          _ref_len_="${#_ref_org_}"
+          _ref_=$(echo ${_ref_all_::$_ref_len_})
+          echo "TAG_REF=$_ref_" >> $GITHUB_ENV
+          _build_=${{ env.TAG_BUILD }}.$_ref_
+          echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
+          echo "WORK_DIR=$(pwd)" >> $GITHUB_ENV
+          _tag_name_=${{ env.TAG_NAME }}
+          echo "TAG_NAME=$_tag_name_-${{ env.TAG_VERSION }}
+
+      - name: Print ref, build version
+        shell: bash
+        run: |
+          echo "REF: ${{ env.TAG_REF }}"
+          echo "BLD: ${{ env.TAG_BUILD }}"
+          echo "NAM: ${{ env.TAG_NAME }}"
+          echo "${{ env.TAG_NAME }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+# - get ref set build end
+
+      - name: Publish Release
+        continue-on-error: true
+        uses: deep-soft/release-action@v1
+        with:
+          #tag: ${{github.ref_name}}
+          draft: ${{ env.DRAFT }}
+          tag: ${{ env.TAG_NAME }}
+          allowUpdates: true
+          artifacts: |
+            _tag_name_.txt
+            ${{ env.ASSET_SRC }}
+            ${{ env.ASSET_SRC1 }}
+
+  build-linux:
+    needs: [program-version]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -29,14 +94,21 @@ jobs:
           sudo apt-get install -y libgnutls28-dev nettle-dev libgmp-dev
           sudo apt-get install -y libxtst-dev libxdamage-dev libxfixes-dev libxrandr-dev libpam-dev
           sudo apt-get install -y libavcodec-dev libavutil-dev libswscale-dev
+
       - name: Configure
-        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+
       - name: Build
         working-directory: build
-        run: make
+        run: |
+          make
+
       - name: Install
         working-directory: build
-        run: make tarball
+        run: |
+          make tarball
+
       - uses: deep-soft/upload-artifact@v3
         with:
           name: Linux (Ubuntu)
@@ -55,16 +127,20 @@ jobs:
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
 
-
   build-windows:
+    needs: [program-version]
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
-      run:
+      run: |
         shell: msys2 {0}
     steps:
-      - uses: deep-soft/checkout@v4
-      - uses: msys2/setup-msys2@v2
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Setup msys
+        uses: msys2/setup-msys2@v2
+
       - name: Install dependencies
         run: |
           pacman --sync --noconfirm --needed \
@@ -74,19 +150,26 @@ jobs:
             mingw-w64-x86_64-gnutls mingw-w64-x86_64-pixman \
             mingw-w64-x86_64-nettle mingw-w64-x86_64-gmp
       - name: Configure
-        run: cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -S . -B build
+
       - name: Build
         working-directory: build
-        run: make
+        run: |
+          make
+
       - name: Install
         working-directory: build
         env:
           MSYS2_PATH_TYPE: inherit
-        run: make installer winvnc_installer
+        run: |
+          make installer winvnc_installer
+
       - uses: deep-soft/upload-artifact@v3
         with:
           name: Windows
           path: build/release/tigervnc*.exe
+
       - name: Publish Release
         continue-on-error: true
         uses: deep-soft/release-action@v1
@@ -101,26 +184,37 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-macos:
+    needs: [program-version]
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
-      - uses: deep-soft/checkout@v4
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
       - name: Install dependencies
         run: |
           brew install fltk pixman ffmpeg
           brew install gnutls nettle gmp
+
       - name: Configure
-        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+
       - name: Build
         working-directory: build
-        run: make
+        run: |
+          make
+
       - name: Install
         working-directory: build
-        run: make dmg
+        run: |
+          make dmg
+
       - uses: deep-soft/upload-artifact@v3
         with:
           name: macOS
           path: build/TigerVNC-*.dmg
+
       - name: Publish Release
         continue-on-error: true
         uses: deep-soft/release-action@v1
@@ -135,32 +229,42 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-java:
+    needs: [program-version]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       matrix:
         java: [ '8', '11', '16' ]
     steps:
-      - uses: deep-soft/checkout@v4
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
       - name: Setup java
         uses: deep-soft/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+
       - name: Configure
         working-directory: java
-        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+
       - name: Build
         working-directory: java/build
-        run: make
+        run: |
+          make
+
       - uses: deep-soft/upload-artifact@v3
         with:
           name: Java (${{ matrix.java }})
           path: java/build/VncViewer.jar
+
       - name: rename VncViewer.jar
         shell: bash
-        run:
+        run: |
           mv java/build/VncViewer.jar java/build/VncViewer-${{ matrix.java }}.jar
+
       - name: Publish Release
         continue-on-error: true
         uses: deep-soft/release-action@v1
@@ -175,6 +279,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-packages:
+    needs: [program-version]
     timeout-minutes: 20
     strategy:
       matrix:
@@ -190,15 +295,22 @@ jobs:
     env:
       DOCKER: ${{ matrix.target }}
     steps:
-      - uses: deep-soft/checkout@v4
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
       - name: Build image
-        run: docker build -t tigervnc/$DOCKER .github/containers/$DOCKER
+        run: |
+          docker build -t tigervnc/$DOCKER .github/containers/$DOCKER
+
       - name: Build packages
-        run: .github/containers/$DOCKER/build.sh
+        run: |
+          .github/containers/$DOCKER/build.sh
+
       - uses: deep-soft/upload-artifact@v3
         with:
           name: Packages (${{ matrix.target }})
           path: .github/containers/${{ matrix.target }}/result
+
       - name: Publish Release
         continue-on-error: true
         uses: deep-soft/release-action@v1
