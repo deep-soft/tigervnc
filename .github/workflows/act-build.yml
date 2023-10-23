@@ -117,7 +117,7 @@ jobs:
       - name: Install
         working-directory: build
         run: make dmg
-      - uses: deep-soft/upload-artifact@v4
+      - uses: deep-soft/upload-artifact@v3
         with:
           name: macOS
           path: build/TigerVNC-*.dmg
