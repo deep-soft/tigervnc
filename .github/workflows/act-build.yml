@@ -28,7 +28,7 @@ jobs:
       - name: get program version
         shell: bash
         run: |
-          _prog_version_=$(grep "set(VERSION " CMakeLists.txt  | awk "{print $2}" | awk -F) "{print $1}")
+          _prog_version_=$(grep "set(VERSION " CMakeLists.txt  | awk '{print $2}' | awk -F")" '{print $1}')
           echo "VERSION=$_prog_version_" >> $GITHUB_ENV
           echo "PROG_VERSION=v$_prog_version_" >> $GITHUB_ENV
           echo "TAG_VERSION=v$_prog_version_" >> $GITHUB_ENV
