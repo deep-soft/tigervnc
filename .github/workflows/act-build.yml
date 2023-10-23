@@ -157,6 +157,10 @@ jobs:
         with:
           name: Java (${{ matrix.java }})
           path: java/build/VncViewer.jar
+      - name: rename VncViewer.jar
+        shell: bash
+        run:
+          mv java/build/VncViewer.jar java/build/VncViewer-${{ matrix.java }}.jar
       - name: Publish Release
         continue-on-error: true
         uses: deep-soft/release-action@v1
@@ -166,7 +170,7 @@ jobs:
           tag: ${{ env.TAG_NAME }}
           allowUpdates: true
           artifacts: |
-            java/build/VncViewer.jar
+            java/build/VncViewer*.jar
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
 
