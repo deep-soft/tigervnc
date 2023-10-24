@@ -79,13 +79,13 @@ jobs:
         name: set vars
         shell: bash
         run: |
-          echo "    TAG_NAME=${{ env.TAG_NAME     }} >> "$GITHUB_OUTPUT"
-          echo " TAG_VERSION=${{ env.TAG_VERSION  }} >> "$GITHUB_OUTPUT"
-          echo "   TAG_BUILD=${{ env.TAG_BUILD    }} >> "$GITHUB_OUTPUT"
-          echo "     TAG_REF=${{ env.TAG_REF      }} >> "$GITHUB_OUTPUT"
-          echo "   PROG_NAME=${{ env.PROG_NAME    }} >> "$GITHUB_OUTPUT"
-          echo "PROG_VERSION=${{ env.PROG_VERSION }} >> "$GITHUB_OUTPUT"
-          echo "     VERSION=${{ env.VERSION      }} >> "$GITHUB_OUTPUT"
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}" >> "$GITHUB_OUTPUT"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}" >> "$GITHUB_OUTPUT"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}" >> "$GITHUB_OUTPUT"
+          echo "     TAG_REF=${{ env.TAG_REF      }}" >> "$GITHUB_OUTPUT"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}" >> "$GITHUB_OUTPUT"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "     VERSION=${{ env.VERSION      }}" >> "$GITHUB_OUTPUT"
 
       - name: Publish Release
         continue-on-error: true
