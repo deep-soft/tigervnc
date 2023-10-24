@@ -106,13 +106,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - env:
-          TAG_NAME:     ${{ jobs.program_version.outputs.TAG_NAME     }}
-          TAG_VERSION:  ${{ jobs.program_version.outputs.TAG_VERSION  }}
-          TAG_BUILD:    ${{ jobs.program_version.outputs.TAG_BUILD    }}
-          TAG_REF:      ${{ jobs.program_version.outputs.TAG_REF      }}
-          PROG_NAME:    ${{ jobs.program_version.outputs.PROG_NAME    }}
-          PROG_VERSION: ${{ jobs.program_version.outputs.PROG_VERSION }}
-          VERSION:      ${{ jobs.program_version.outputs.VERSION      }}
+          TAG_NAME:     ${{ needs.program_version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program_version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program_version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program_version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program_version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program_version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program_version.outputs.VERSION      }}
         run: |
           echo "    TAG_NAME=$TAG_NAME     "
           echo " TAG_VERSION=$TAG_VERSION  "
