@@ -129,13 +129,13 @@ jobs:
         shell: bash
         run: |
           echo "restored?"
-          #echo "    TAG_NAME=${{ jobs.program_version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
-          #echo " TAG_VERSION=${{ jobs.program_version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
-          #echo "   TAG_BUILD=${{ jobs.program_version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
-          #echo "     TAG_REF=${{ jobs.program_version.outputs.TAG_REF      }}" >> $GITHUB_ENV
-          #echo "   PROG_NAME=${{ jobs.program_version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
-          #echo "PROG_VERSION=${{ jobs.program_version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
-          #echo "     VERSION=${{ jobs.program_version.outputs.VERSION      }}" >> $GITHUB_ENV
+          # echo "    TAG_NAME=${{ needs.program_version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
+          # echo " TAG_VERSION=${{ needs.program_version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
+          # echo "   TAG_BUILD=${{ needs.program_version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
+          # echo "     TAG_REF=${{ needs.program_version.outputs.TAG_REF      }}" >> $GITHUB_ENV
+          # echo "   PROG_NAME=${{ needs.program_version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
+          # echo "PROG_VERSION=${{ needs.program_version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          # echo "     VERSION=${{ needs.program_version.outputs.VERSION      }}" >> $GITHUB_ENV
 
       - name: print ENV restored from program_version
         shell: bash
