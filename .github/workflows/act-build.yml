@@ -113,6 +113,14 @@ jobs:
           PROG_NAME:    ${{ jobs.program_version.outputs.PROG_NAME    }}
           PROG_VERSION: ${{ jobs.program_version.outputs.PROG_VERSION }}
           VERSION:      ${{ jobs.program_version.outputs.VERSION      }}
+        run: |
+          echo "    TAG_NAME=$TAG_NAME     "
+          echo " TAG_VERSION=$TAG_VERSION  "
+          echo "   TAG_BUILD=$TAG_BUILD    "
+          echo "     TAG_REF=$TAG_REF      "
+          echo "   PROG_NAME=$PROG_NAME    "
+          echo "PROG_VERSION=$PROG_VERSION "
+          echo "     VERSION=$VERSION      "
 
       - name: Checkout
         uses: deep-soft/checkout@v4
