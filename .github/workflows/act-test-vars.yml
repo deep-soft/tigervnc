@@ -95,20 +95,6 @@ jobs:
           echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}"
           echo "     VERSION=${{ needs.program-version.outputs.VERSION      }}"
 
-
-      - name: Publish Release
-        continue-on-error: true
-        uses: deep-soft/release-action@v1
-        with:
-          #tag: ${{github.ref_name}}
-          draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
-          allowUpdates: true
-          artifacts: |
-            _tag_name_.txt
-            ${{ env.ASSET_SRC }}
-            ${{ env.ASSET_SRC1 }}
-
   build-linux:
     runs-on: ubuntu-latest
     needs: [program-version]
