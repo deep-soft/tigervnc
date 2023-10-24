@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      TAG_NAME:      ${{ steps.set_vars.TAG_NAME }}
-      TAG_VERSION:   ${{ steps.set_vars.TAG_VERSION }}
-      TAG_BUILD:     ${{ steps.set_vars.TAG_BUILD }}
-      TAG_REF:       ${{ steps.set_vars.TAG_REF }}
-      PROG_NAME:     ${{ steps.set_vars.PROG_NAME }}
+      TAG_NAME:      ${{ steps.set_vars.TAG_NAME     }}
+      TAG_VERSION:   ${{ steps.set_vars.TAG_VERSION  }}
+      TAG_BUILD:     ${{ steps.set_vars.TAG_BUILD    }}
+      TAG_REF:       ${{ steps.set_vars.TAG_REF      }}
+      PROG_NAME:     ${{ steps.set_vars.PROG_NAME    }}
       PROG_VERSION:  ${{ steps.set_vars.PROG_VERSION }}
-      VERSION:       ${{ steps.set_vars.VERSION }}
+      VERSION:       ${{ steps.set_vars.VERSION      }}
       
     steps:
       - name: Checkout
@@ -86,6 +86,15 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}" >> "$GITHUB_OUTPUT"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}" >> "$GITHUB_OUTPUT"
           echo "     VERSION=${{ env.VERSION      }}" >> "$GITHUB_OUTPUT"
+          
+          echo "    TAG_NAME=${{ needs.program-version.outputs.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ needs.program-version.outputs.TAG_REF      }}"
+          echo "   PROG_NAME=${{ needs.program-version.outputs.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}"
+          echo "     VERSION=${{ needs.program-version.outputs.VERSION      }}"
+
 
       - name: Publish Release
         continue-on-error: true
