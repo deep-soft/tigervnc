@@ -20,6 +20,15 @@ jobs:
   program-version:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      TAG_NAME:      ${{ env.TAG_NAME }}
+      TAG_VERSION:   ${{ env.TAG_VERSION }}
+      TAG_BUILD:     ${{ env.TAG_BUILD }}
+      TAG_REF:       ${{ env.TAG_REF }}
+      PROG_NAME:     ${{ env.PROG_NAME }}
+      PROG_VERSION:  ${{ env.PROG_VERSION }}
+      VERSION:       ${{ env.VERSION }}
+      
     steps:
       - name: Checkout
         uses: deep-soft/checkout@v4
@@ -86,6 +95,28 @@ jobs:
     steps:
       - name: Checkout
         uses: deep-soft/checkout@v4
+
+      - name: restore ENV from program-version
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ program-version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
+          echo " TAG_VERSION=${{ program-version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
+          echo "   TAG_BUILD=${{ program-version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
+          echo "     TAG_REF=${{ program-version.outputs.TAG_REF      }}" >> $GITHUB_ENV
+          echo "   PROG_NAME=${{ program-version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "     VERSION=${{ program-version.outputs.VERSION      }}" >> $GITHUB_ENV
+
+      - name: print ENV restored from program-version
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
 
       - name: Install dependencies
         run: |
