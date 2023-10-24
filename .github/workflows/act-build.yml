@@ -75,11 +75,11 @@ jobs:
           echo "${{ env.TAG_NAME }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
 # - get ref set build end
 
-      - name: set vars
-        id: set_vars
+      - id: set_vars
+        name: set vars
         shell: bash
         run: |
-          echo "    TAG_NAME=${{ env.TAG_NAME     }}" >> "$GITHUB_OUTPUT"
+          echo "    TAG_NAME=${{ env.TAG_NAME     }} >> "$GITHUB_OUTPUT"
           echo " TAG_VERSION=${{ env.TAG_VERSION  }} >> "$GITHUB_OUTPUT"
           echo "   TAG_BUILD=${{ env.TAG_BUILD    }} >> "$GITHUB_OUTPUT"
           echo "     TAG_REF=${{ env.TAG_REF      }} >> "$GITHUB_OUTPUT"
@@ -101,23 +101,33 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-linux:
-    needs: [program_version]
     runs-on: ubuntu-latest
+    needs: [program_version]
     timeout-minutes: 10
     steps:
+      - env:
+          TAG_NAME:     ${{ jobs.program_version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ jobs.program_version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ jobs.program_version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ jobs.program_version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ jobs.program_version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ jobs.program_version.outputs.PROG_VERSION }}
+          VERSION:      ${{ jobs.program_version.outputs.VERSION      }}
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
       - name: restore ENV from program_version
         shell: bash
         run: |
-          echo "    TAG_NAME=${{ jobs.program_version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
-          echo " TAG_VERSION=${{ jobs.program_version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
-          echo "   TAG_BUILD=${{ jobs.program_version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
-          echo "     TAG_REF=${{ jobs.program_version.outputs.TAG_REF      }}" >> $GITHUB_ENV
-          echo "   PROG_NAME=${{ jobs.program_version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
-          echo "PROG_VERSION=${{ jobs.program_version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
-          echo "     VERSION=${{ jobs.program_version.outputs.VERSION      }}" >> $GITHUB_ENV
+          echo "restored?"
+          #echo "    TAG_NAME=${{ jobs.program_version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
+          #echo " TAG_VERSION=${{ jobs.program_version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
+          #echo "   TAG_BUILD=${{ jobs.program_version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
+          #echo "     TAG_REF=${{ jobs.program_version.outputs.TAG_REF      }}" >> $GITHUB_ENV
+          #echo "   PROG_NAME=${{ jobs.program_version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
+          #echo "PROG_VERSION=${{ jobs.program_version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          #echo "     VERSION=${{ jobs.program_version.outputs.VERSION      }}" >> $GITHUB_ENV
 
       - name: print ENV restored from program_version
         shell: bash
@@ -171,7 +181,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-windows:
-    needs: [program-version]
+    needs: [program_version]
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
