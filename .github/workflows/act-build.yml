@@ -18,7 +18,6 @@ env:
 
 jobs:
   program-version:
-  id: program-version
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -100,13 +99,13 @@ jobs:
       - name: restore ENV from program-version
         shell: bash
         run: |
-          echo "    TAG_NAME=${{ program-version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
-          echo " TAG_VERSION=${{ program-version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
-          echo "   TAG_BUILD=${{ program-version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
-          echo "     TAG_REF=${{ program-version.outputs.TAG_REF      }}" >> $GITHUB_ENV
-          echo "   PROG_NAME=${{ program-version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
-          echo "PROG_VERSION=${{ program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
-          echo "     VERSION=${{ program-version.outputs.VERSION      }}" >> $GITHUB_ENV
+          echo "    TAG_NAME=${{ jobs.program-version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
+          echo " TAG_VERSION=${{ jobs.program-version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
+          echo "   TAG_BUILD=${{ jobs.program-version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
+          echo "     TAG_REF=${{ jobs.program-version.outputs.TAG_REF      }}" >> $GITHUB_ENV
+          echo "   PROG_NAME=${{ jobs.program-version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ jobs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "     VERSION=${{ jobs.program-version.outputs.VERSION      }}" >> $GITHUB_ENV
 
       - name: print ENV restored from program-version
         shell: bash
