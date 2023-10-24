@@ -18,6 +18,7 @@ env:
 
 jobs:
   program-version:
+  id: program-version
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
