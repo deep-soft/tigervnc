@@ -17,7 +17,7 @@ env:
   DEBUG_LS:      "yes"
 
 jobs:
-  program_version:
+  program-version:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -102,17 +102,17 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
-    needs: [program_version]
+    needs: [program-version]
     timeout-minutes: 10
     steps:
       - env:
-          TAG_NAME:     ${{ needs.program_version.outputs.TAG_NAME     }}
-          TAG_VERSION:  ${{ needs.program_version.outputs.TAG_VERSION  }}
-          TAG_BUILD:    ${{ needs.program_version.outputs.TAG_BUILD    }}
-          TAG_REF:      ${{ needs.program_version.outputs.TAG_REF      }}
-          PROG_NAME:    ${{ needs.program_version.outputs.PROG_NAME    }}
-          PROG_VERSION: ${{ needs.program_version.outputs.PROG_VERSION }}
-          VERSION:      ${{ needs.program_version.outputs.VERSION      }}
+          TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program-version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program-version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program-version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program-version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program-version.outputs.VERSION      }}
         run: |
           echo "    TAG_NAME=$TAG_NAME     "
           echo " TAG_VERSION=$TAG_VERSION  "
@@ -125,19 +125,19 @@ jobs:
       - name: Checkout
         uses: deep-soft/checkout@v4
 
-      - name: restore ENV from program_version
+      - name: restore ENV from program-version
         shell: bash
         run: |
           echo "restored?"
-          # echo "    TAG_NAME=${{ needs.program_version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
-          # echo " TAG_VERSION=${{ needs.program_version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
-          # echo "   TAG_BUILD=${{ needs.program_version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
-          # echo "     TAG_REF=${{ needs.program_version.outputs.TAG_REF      }}" >> $GITHUB_ENV
-          # echo "   PROG_NAME=${{ needs.program_version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
-          # echo "PROG_VERSION=${{ needs.program_version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
-          # echo "     VERSION=${{ needs.program_version.outputs.VERSION      }}" >> $GITHUB_ENV
+          # echo "    TAG_NAME=${{ needs.program-version.outputs.TAG_NAME     }}" >> $GITHUB_ENV
+          # echo " TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION  }}" >> $GITHUB_ENV
+          # echo "   TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD    }}" >> $GITHUB_ENV
+          # echo "     TAG_REF=${{ needs.program-version.outputs.TAG_REF      }}" >> $GITHUB_ENV
+          # echo "   PROG_NAME=${{ needs.program-version.outputs.PROG_NAME    }}" >> $GITHUB_ENV
+          # echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          # echo "     VERSION=${{ needs.program-version.outputs.VERSION      }}" >> $GITHUB_ENV
 
-      - name: print ENV restored from program_version
+      - name: print ENV restored from program-version
         shell: bash
         run: |
           echo "    TAG_NAME=${{ env.TAG_NAME     }}"
@@ -189,7 +189,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-windows:
-    needs: [program_version]
+    needs: [program-version]
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
