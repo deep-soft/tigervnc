@@ -98,13 +98,12 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/release-action@v1
+        uses: deep-soft/action-gh-release@v2
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
-          allowUpdates: true
-          artifacts: |
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             _tag_name_.txt
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
@@ -186,13 +185,12 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/release-action@v1
+        uses: deep-soft/action-gh-release@v2
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
-          allowUpdates: true
-          artifacts: |
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             build/tigervnc-*.tar.gz
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
@@ -242,13 +240,12 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/release-action@v1
+        uses: deep-soft/action-gh-release@v2
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
-          allowUpdates: true
-          artifacts: |
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             build/release/tigervnc*.exe
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
@@ -287,13 +284,12 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/release-action@v1
+        uses: deep-soft/action-gh-release@v2
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
-          allowUpdates: true
-          artifacts: |
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             build/TigerVNC-*.dmg
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
@@ -337,13 +333,12 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/release-action@v1
+        uses: deep-soft/action-gh-release@v2
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
-          allowUpdates: true
-          artifacts: |
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             java/build/VncViewer*.jar
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
@@ -383,13 +378,13 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/release-action@v1
+        uses: deep-soft/action-gh-release@v2
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
-          tag: ${{ env.TAG_NAME }}
+          tag_name: ${{ env.TAG_NAME }}
           allowUpdates: true
-          artifacts: |
+          files: |
             .github/containers/${{ matrix.target }}/result
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
