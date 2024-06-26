@@ -24,6 +24,9 @@
 #include <os/os.h>
 
 #include <assert.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #ifndef WIN32
 #include <pwd.h>
@@ -31,20 +34,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <unistd.h>
 #else
 #include <windows.h>
 #include <wininet.h> /* MinGW needs it */
 #include <shlobj.h>
+#define stat _stat
+#define mkdir(path, mode) mkdir(path)
 #endif
 
-static const char* gethomedir(bool userDir)
+static const char* getvncdir(bool userDir, const char *xdg_env, const char *xdg_def)
 {
-  static char dir[PATH_MAX];
+  static char dir[PATH_MAX], legacy[PATH_MAX];
+  struct stat st;
 
 #ifndef WIN32
-  char *homedir;
+  char *homedir, *xdgdir;
   uid_t uid;
   struct passwd *passwd;
 #else
@@ -53,12 +58,12 @@ static const char* gethomedir(bool userDir)
 
 #ifndef WIN32
   homedir = getenv("HOME");
-  if (homedir == NULL) {
+  if (homedir == nullptr) {
     uid = getuid();
     passwd = getpwuid(uid);
-    if (passwd == NULL) {
+    if (passwd == nullptr) {
       /* Do we want emit error msg here? */
-      return NULL;
+      return nullptr;
     }
     homedir = passwd->pw_dir;
   }
@@ -66,37 +71,92 @@ static const char* gethomedir(bool userDir)
   if (userDir)
     return homedir;
 
-  snprintf(dir, sizeof(dir), "%s/.vnc", homedir);
-
-  return dir;
-#else
-  if (userDir)
-    ret = SHGetSpecialFolderPath(NULL, dir, CSIDL_PROFILE, FALSE);
+  xdgdir = getenv(xdg_env);
+  if (xdgdir != nullptr && xdgdir[0] == '/')
+    snprintf(dir, sizeof(dir), "%s/tigervnc", xdgdir);
   else
-    ret = SHGetSpecialFolderPath(NULL, dir, CSIDL_APPDATA, FALSE);
+    snprintf(dir, sizeof(dir), "%s/%s/tigervnc", homedir, xdg_def);
+
+  snprintf(legacy, sizeof(legacy), "%s/.vnc", homedir);
+#else
+  (void) xdg_def;
+  (void) xdg_env;
+
+  if (userDir)
+    ret = SHGetSpecialFolderPath(nullptr, dir, CSIDL_PROFILE, FALSE);
+  else
+    ret = SHGetSpecialFolderPath(nullptr, dir, CSIDL_APPDATA, FALSE);
 
   if (ret == FALSE)
-    return NULL;
+    return nullptr;
 
   if (userDir)
     return dir;
 
-  if (strlen(dir) + strlen("\\vnc") >= sizeof(dir))
-    return NULL;
+  ret = SHGetSpecialFolderPath(nullptr, legacy, CSIDL_APPDATA, FALSE);
 
-  strcat(dir, "\\vnc");
+  if (ret == FALSE)
+    return nullptr;
 
-  return dir;
+  if (strlen(dir) + strlen("\\TigerVNC") >= sizeof(dir))
+    return nullptr;
+  if (strlen(legacy) + strlen("\\vnc") >= sizeof(legacy))
+    return nullptr;
+
+  strcat(dir, "\\TigerVNC");
+  strcat(legacy, "\\vnc");
 #endif
-}
-
-const char* os::getvnchomedir()
-{
-  return gethomedir(false);
+  return (stat(dir, &st) != 0 && stat(legacy, &st) == 0) ? legacy : dir;
 }
 
 const char* os::getuserhomedir()
 {
-  return gethomedir(true);
+  return getvncdir(true, nullptr, nullptr);
 }
 
+const char* os::getvncconfigdir()
+{
+  return getvncdir(false, "XDG_CONFIG_HOME", ".config");
+}
+
+const char* os::getvncdatadir()
+{
+  return getvncdir(false, "XDG_DATA_HOME", ".local/share");
+}
+
+const char* os::getvncstatedir()
+{
+  return getvncdir(false, "XDG_STATE_HOME", ".local/state");
+}
+
+int os::mkdir_p(const char *path_, mode_t mode)
+{
+  char *path = strdup(path_);
+  char *p;
+
+#ifdef WIN32
+  (void)mode;
+#endif
+
+  for (p = path + 1; *p; p++) {
+    if (*p == '/') {
+      *p = '\0';
+      if (mkdir(path, mode) == -1) {
+        if (errno != EEXIST) {
+          free(path);
+          return -1;
+        }
+      }
+      *p = '/';
+    }
+  }
+
+  if (mkdir(path, mode) == -1) {
+    free(path);
+    return -1;
+  }
+
+  free(path);
+
+  return 0;
+}

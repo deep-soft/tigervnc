@@ -48,14 +48,15 @@ using namespace rfb;
 
 static LogWriter vlog("VNCSConnST");
 
-static Cursor emptyCursor(0, 0, Point(0, 0), NULL);
+static Cursor emptyCursor(0, 0, Point(0, 0), nullptr);
 
 VNCSConnectionST::VNCSConnectionST(VNCServerST* server_, network::Socket *s,
-                                   bool reverse)
-  : sock(s), reverseConnection(reverse),
+                                   bool reverse, AccessRights ar)
+  : SConnection(ar),
+    sock(s), reverseConnection(reverse),
     inProcessMessages(false),
     pendingSyncFence(false), syncFence(false), fenceFlags(0),
-    fenceDataLen(0), fenceData(NULL), congestionTimer(this),
+    fenceDataLen(0), fenceData(nullptr), congestionTimer(this),
     losslessTimer(this), server(server_),
     updateRenderedCursor(false), removeRenderedCursor(false),
     continuousUpdates(false), encodeManager(this), idleTimer(this),
@@ -408,7 +409,7 @@ bool VNCSConnectionST::needRenderedCursor()
   if (!client.supportsLocalCursor())
     return true;
   if ((server->getCursorPos() != pointerEventPos) &&
-      (time(0) - pointerEventTime) > 0)
+      (time(nullptr) - pointerEventTime) > 0)
     return true;
 
   return false;
@@ -480,7 +481,7 @@ void VNCSConnectionST::pointerEvent(const Point& pos, int buttonMask)
 {
   if (rfb::Server::idleTimeout)
     idleTimer.start(secsToMillis(rfb::Server::idleTimeout));
-  pointerEventTime = time(0);
+  pointerEventTime = time(nullptr);
   if (!accessCheck(AccessPtrEvents)) return;
   if (!rfb::Server::acceptPointerEvents) return;
   pointerEventPos = pos;
@@ -689,7 +690,7 @@ void VNCSConnectionST::fence(uint32_t flags, unsigned len, const uint8_t data[])
       fenceFlags = flags & (fenceFlagBlockBefore | fenceFlagBlockAfter | fenceFlagSyncNext);
       fenceDataLen = len;
       delete [] fenceData;
-      fenceData = NULL;
+      fenceData = nullptr;
       if (len > 0) {
         fenceData = new uint8_t[len];
         memcpy(fenceData, data, len);
@@ -799,7 +800,7 @@ void VNCSConnectionST::supportsLEDState()
   writer()->writeLEDState();
 }
 
-bool VNCSConnectionST::handleTimeout(Timer* t)
+void VNCSConnectionST::handleTimeout(Timer* t)
 {
   try {
     if ((t == &congestionTimer) ||
@@ -811,8 +812,6 @@ bool VNCSConnectionST::handleTimeout(Timer* t)
 
   if (t == &idleTimer)
     close("Idle timeout");
-
-  return false;
 }
 
 bool VNCSConnectionST::isShiftPressed()
@@ -1002,7 +1001,7 @@ void VNCSConnectionST::writeDataUpdate()
 
   // Does the client need a server-side rendered cursor?
 
-  cursor = NULL;
+  cursor = nullptr;
   if (needRenderedCursor()) {
     Rect renderedCursorRect;
 
@@ -1084,7 +1083,7 @@ void VNCSConnectionST::writeLosslessRefresh()
 
   // Prepare the cursor in case it overlaps with a region getting
   // refreshed
-  cursor = NULL;
+  cursor = nullptr;
   if (needRenderedCursor())
     cursor = server->getRenderedCursor();
 

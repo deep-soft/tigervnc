@@ -23,6 +23,9 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include <algorithm>
+
 #include <rfb/Exception.h>
 #include <rfb/Security.h>
 #include <rfb/clipboardTypes.h>
@@ -43,24 +46,12 @@ using namespace rfb;
 
 static LogWriter vlog("SConnection");
 
-// AccessRights values
-const SConnection::AccessRights SConnection::AccessView           = 0x0001;
-const SConnection::AccessRights SConnection::AccessKeyEvents      = 0x0002;
-const SConnection::AccessRights SConnection::AccessPtrEvents      = 0x0004;
-const SConnection::AccessRights SConnection::AccessCutText        = 0x0008;
-const SConnection::AccessRights SConnection::AccessSetDesktopSize = 0x0010;
-const SConnection::AccessRights SConnection::AccessNonShared      = 0x0020;
-const SConnection::AccessRights SConnection::AccessDefault        = 0x03ff;
-const SConnection::AccessRights SConnection::AccessNoQuery        = 0x0400;
-const SConnection::AccessRights SConnection::AccessFull           = 0xffff;
-
-
-SConnection::SConnection()
-  : readyForSetColourMapEntries(false),
-    is(0), os(0), reader_(0), writer_(0), ssecurity(0),
+SConnection::SConnection(AccessRights accessRights_)
+  : readyForSetColourMapEntries(false), is(nullptr), os(nullptr),
+    reader_(nullptr), writer_(nullptr), ssecurity(nullptr),
     authFailureTimer(this, &SConnection::handleAuthFailureTimeout),
     state_(RFBSTATE_UNINITIALISED), preferredEncoding(encodingRaw),
-    accessRights(0x0000), hasRemoteClipboard(false),
+    accessRights(accessRights_), hasRemoteClipboard(false),
     hasLocalClipboard(false),
     unsolicitedClipboardAttempt(false)
 {
@@ -218,12 +209,10 @@ void SConnection::processSecurityType(int secType)
 {
   // Verify that the requested security type should be offered
   std::list<uint8_t> secTypes;
-  std::list<uint8_t>::iterator i;
 
   secTypes = security.GetEnabledSecTypes();
-  for (i=secTypes.begin(); i!=secTypes.end(); i++)
-    if (*i == secType) break;
-  if (i == secTypes.end())
+  if (std::find(secTypes.begin(), secTypes.end(),
+                secType) == secTypes.end())
     throw Exception("Requested security type not available");
 
   vlog.info("Client requests security type %s(%d)",
@@ -254,7 +243,7 @@ bool SConnection::processSecurityMsg()
   }
 
   state_ = RFBSTATE_QUERYING;
-  setAccessRights(ssecurity->getAccessRights());
+  setAccessRights(accessRights & ssecurity->getAccessRights());
   queryConnection(ssecurity->getUserName());
 
   // If the connection got approved right away then we can continue
@@ -287,11 +276,11 @@ bool SConnection::processInitMsg()
   return reader_->readClientInit();
 }
 
-bool SConnection::handleAuthFailureTimeout(Timer* /*t*/)
+void SConnection::handleAuthFailureTimeout(Timer* /*t*/)
 {
   if (state_ != RFBSTATE_SECURITY_FAILURE) {
     close("SConnection::handleAuthFailureTimeout: invalid state");
-    return false;
+    return;
   }
 
   try {
@@ -304,12 +293,10 @@ bool SConnection::handleAuthFailureTimeout(Timer* /*t*/)
     os->flush();
   } catch (rdr::Exception& e) {
     close(e.str());
-    return false;
+    return;
   }
 
   close(authFailureMsg.c_str());
-
-  return false;
 }
 
 void SConnection::throwConnFailedException(const char* format, ...)
@@ -600,7 +587,7 @@ void SConnection::sendClipboardData(const char* data)
     // FIXME: This conversion magic should be in SMsgWriter
     std::string filtered(convertCRLF(data));
     size_t sizes[1] = { filtered.size() + 1 };
-    const uint8_t* data[1] = { (const uint8_t*)filtered.c_str() };
+    const uint8_t* datas[1] = { (const uint8_t*)filtered.c_str() };
 
     if (unsolicitedClipboardAttempt) {
       unsolicitedClipboardAttempt = false;
@@ -612,7 +599,7 @@ void SConnection::sendClipboardData(const char* data)
       }
     }
 
-    writer()->writeClipboardProvide(rfb::clipboardUTF8, sizes, data);
+    writer()->writeClipboardProvide(rfb::clipboardUTF8, sizes, datas);
   } else {
     writer()->writeServerCutText(data);
   }
@@ -621,11 +608,11 @@ void SConnection::sendClipboardData(const char* data)
 void SConnection::cleanup()
 {
   delete ssecurity;
-  ssecurity = NULL;
+  ssecurity = nullptr;
   delete reader_;
-  reader_ = NULL;
+  reader_ = nullptr;
   delete writer_;
-  writer_ = NULL;
+  writer_ = nullptr;
 }
 
 void SConnection::writeFakeColourMap(void)

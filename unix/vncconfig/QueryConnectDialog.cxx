@@ -25,12 +25,12 @@
 #include "QueryConnectDialog.h"
 #include "vncExt.h"
 
-QueryConnectDialog::QueryConnectDialog(Display* dpy,
+QueryConnectDialog::QueryConnectDialog(Display* dpy_,
                                        const char* address_,
                                        const char* user_,
                                        int timeout_,
                                        QueryResultCallback* cb)
-  : TXDialog(dpy, 300, 100, "VNC Server : Accept Connection?"),
+  : TXDialog(dpy_, 300, 100, "VNC Server : Accept Connection?"),
     addressLbl(dpy, "Host:",this),
     address(dpy, address_, this),
     userLbl(dpy, "User:", this),
@@ -74,14 +74,13 @@ void QueryConnectDialog::buttonActivate(TXButton* b) {
     callback->queryRejected();
 }
   
-bool QueryConnectDialog::handleTimeout(rfb::Timer* /*t*/) {
+void QueryConnectDialog::handleTimeout(rfb::Timer* t) {
   if (timeUntilReject-- == 0) {
     unmap();
     callback->queryTimedOut();
-    return false;
   } else {
     refreshTimeout();
-    return true;
+    t->repeat();
   }
 }
 

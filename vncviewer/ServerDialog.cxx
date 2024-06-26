@@ -110,7 +110,7 @@ ServerDialog::ServerDialog()
   y += BUTTON_HEIGHT + INNER_MARGIN;
 
   /* Needed for resize to work sanely */
-  resizable(NULL);
+  resizable(nullptr);
   h(y-INNER_MARGIN+OUTER_MARGIN);
 
   callback(this->handleCancel, this);
@@ -146,7 +146,7 @@ void ServerDialog::run(const char* servername, char *newservername)
 
   while (dialog.shown()) Fl::wait();
 
-  if (dialog.serverName->value() == NULL) {
+  if (dialog.serverName->value() == nullptr) {
     newservername[0] = '\0';
     return;
   }
@@ -180,7 +180,7 @@ void ServerDialog::handleLoad(Fl_Widget* /*widget*/, void* data)
     Fl::wait();
   
   // Did the user hit cancel?
-  if (file_chooser->value() == NULL) {
+  if (file_chooser->value() == nullptr) {
     delete(file_chooser);
     return;
   }
@@ -223,7 +223,7 @@ void ServerDialog::handleSaveAs(Fl_Widget* /*widget*/, void* data)
       Fl::wait();
     
     // Did the user hit cancel?
-    if (file_chooser->value() == NULL) {
+    if (file_chooser->value() == nullptr) {
       delete(file_chooser);
       return;
     }
@@ -237,7 +237,7 @@ void ServerDialog::handleSaveAs(Fl_Widget* /*widget*/, void* data)
       // The file already exists.
       fclose(f);
       int overwrite_choice = fl_choice(_("%s already exists. Do you want to overwrite?"), 
-                                       _("Overwrite"), _("No"), NULL, filename);
+                                       _("Overwrite"), _("No"), nullptr, filename);
       if (overwrite_choice == 1) {
 
         // If the user doesn't want to overwrite:
@@ -284,7 +284,7 @@ void ServerDialog::handleConnect(Fl_Widget* /*widget*/, void *data)
   dialog->hide();
 
   try {
-    saveViewerParameters(NULL, servername);
+    saveViewerParameters(nullptr, servername);
   } catch (Exception& e) {
     vlog.error("%s", e.str());
     fl_alert(_("Unable to save the default configuration:\n\n%s"),
@@ -315,12 +315,12 @@ void ServerDialog::loadServerHistory()
   return;
 #endif
 
-  const char* homeDir = os::getvnchomedir();
-  if (homeDir == NULL)
-    throw Exception(_("Could not obtain the home directory path"));
+  const char* stateDir = os::getvncstatedir();
+  if (stateDir == nullptr)
+    throw Exception(_("Could not obtain the state directory path"));
 
   char filepath[PATH_MAX];
-  snprintf(filepath, sizeof(filepath), "%s/%s", homeDir, SERVER_HISTORY);
+  snprintf(filepath, sizeof(filepath), "%s/%s", stateDir, SERVER_HISTORY);
 
   /* Read server history from file */
   FILE* f = fopen(filepath, "r");
@@ -381,12 +381,12 @@ void ServerDialog::saveServerHistory()
   return;
 #endif
 
-  const char* homeDir = os::getvnchomedir();
-  if (homeDir == NULL)
-    throw Exception(_("Could not obtain the home directory path"));
+  const char* stateDir = os::getvncstatedir();
+  if (stateDir == nullptr)
+    throw Exception(_("Could not obtain the state directory path"));
 
   char filepath[PATH_MAX];
-  snprintf(filepath, sizeof(filepath), "%s/%s", homeDir, SERVER_HISTORY);
+  snprintf(filepath, sizeof(filepath), "%s/%s", stateDir, SERVER_HISTORY);
 
   /* Write server history to file */
   FILE* f = fopen(filepath, "w+");
@@ -395,8 +395,8 @@ void ServerDialog::saveServerHistory()
                     filepath, strerror(errno));
 
   // Save the last X elements to the config file.
-  for(size_t i=0; i < serverHistory.size() && i <= SERVER_HISTORY_SIZE; i++)
-    fprintf(f, "%s\n", serverHistory[i].c_str());
+  for(size_t idx=0; idx < serverHistory.size() && idx <= SERVER_HISTORY_SIZE; idx++)
+    fprintf(f, "%s\n", serverHistory[idx].c_str());
 
   fclose(f);
 }

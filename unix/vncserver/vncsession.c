@@ -259,6 +259,19 @@ stop_pam(pam_handle_t * pamh, int pamret)
     return pamret;
 }
 
+static char *
+getenvp(const char *name, char **envp)
+{
+    while (*envp) {
+        size_t varlen;
+        varlen = strcspn(*envp, "=");
+        if (strncmp(*envp, name, varlen) == 0)
+            return *envp + varlen + 1;
+        envp++;
+    }
+    return NULL;
+}
+
 static char **
 prepare_environ(pam_handle_t * pamh)
 {
@@ -345,13 +358,43 @@ switch_user(const char *username, uid_t uid, gid_t gid)
     }
 }
 
+static int
+mkdir_p(const char *path_, mode_t mode)
+{
+  char *path = strdup(path_);
+  char *p;
+
+  for (p = path + 1; *p; p++) {
+    if (*p == '/') {
+      *p = '\0';
+      if (mkdir(path, mode) == -1) {
+        if (errno != EEXIST) {
+          free(path);
+          return -1;
+        }
+      }
+      *p = '/';
+    }
+  }
+
+  if (mkdir(path, mode) == -1) {
+    free(path);
+    return -1;
+  }
+
+  free(path);
+
+  return 0;
+}
+
 static void
-redir_stdio(const char *homedir, const char *display)
+redir_stdio(const char *homedir, const char *display, char **envp)
 {
     int fd;
     long hostlen;
-    char* hostname = NULL;
-    char logfile[PATH_MAX];
+    char* hostname = NULL, *xdgstate;
+    char logfile[PATH_MAX], legacy[PATH_MAX];
+    struct stat st;
 
     fd = open("/dev/null", O_RDONLY);
     if (fd == -1) {
@@ -364,23 +407,35 @@ redir_stdio(const char *homedir, const char *display)
     }
     close(fd);
 
-    snprintf(logfile, sizeof(logfile), "%s/.vnc", homedir);
-    if (mkdir(logfile, 0755) == -1) {
+    xdgstate = getenvp("XDG_STATE_HOME", envp);
+    if (xdgstate != NULL && xdgstate[0] == '/')
+        snprintf(logfile, sizeof(logfile), "%s/tigervnc", xdgstate);
+    else
+        snprintf(logfile, sizeof(logfile), "%s/.local/state/tigervnc", homedir);
+
+    snprintf(legacy, sizeof(legacy), "%s/.vnc", homedir);
+    if (stat(logfile, &st) != 0 && stat(legacy, &st) == 0) {
+        syslog(LOG_WARNING, "~/.vnc is deprecated, please consult 'man vncsession' for paths to migrate to.");
+        strcpy(logfile, legacy);
+
+#ifdef HAVE_SELINUX
+        /* this is only needed to handle historical type changes for the legacy dir */
+        int result;
+        if (selinux_file_context_verify(legacy, 0) == 0) {
+            result = selinux_restorecon(legacy, SELINUX_RESTORECON_RECURSE);
+
+            if (result < 0) {
+                syslog(LOG_WARNING, "Failure restoring SELinux context for \"%s\": %s", legacy, strerror(errno));
+            }
+        }
+#endif
+    }
+
+    if (mkdir_p(logfile, 0755) == -1) {
         if (errno != EEXIST) {
             syslog(LOG_CRIT, "Failure creating \"%s\": %s", logfile, strerror(errno));
             _exit(EX_OSERR);
         }
-
-#ifdef HAVE_SELINUX
-        int result;
-        if (selinux_file_context_verify(logfile, 0) == 0) {
-            result = selinux_restorecon(logfile, SELINUX_RESTORECON_RECURSE);
-
-            if (result < 0) {
-                syslog(LOG_WARNING, "Failure restoring SELinux context for \"%s\": %s", logfile, strerror(errno));
-            }
-        }
-#endif
     }
 
     hostlen = sysconf(_SC_HOST_NAME_MAX);
@@ -395,8 +450,8 @@ redir_stdio(const char *homedir, const char *display)
         _exit(EX_OSERR);
     }
 
-    snprintf(logfile, sizeof(logfile), "%s/.vnc/%s%s.log",
-             homedir, hostname, display);
+    snprintf(logfile + strlen(logfile), sizeof(logfile) - strlen(logfile), "/%s%s.log",
+             hostname, display);
     free(hostname);
     fd = open(logfile, O_CREAT | O_WRONLY | O_TRUNC, 0644);
     if (fd == -1) {
@@ -421,6 +476,10 @@ close_fds(void)
         syslog(LOG_CRIT, "opendir: %s", strerror(errno));
         _exit(EX_OSERR);
     }
+
+    // We'll close the file descriptor that the logging uses, so might
+    // as well do it cleanly
+    closelog();
 
     while ((entry = readdir(dir)) != NULL) {
         int fd;
@@ -466,7 +525,7 @@ run_script(const char *username, const char *display, char **envp)
 
     close_fds();
 
-    redir_stdio(pwent->pw_dir, display);
+    redir_stdio(pwent->pw_dir, display, envp);
 
     // execvpe() is not POSIX and is missing from older glibc
     // First clear out everything
@@ -495,9 +554,12 @@ run_script(const char *username, const char *display, char **envp)
     child_argv[1] = display;
     child_argv[2] = NULL;
 
+    closelog();
+
     execvp(child_argv[0], (char*const*)child_argv);
 
     // execvp failed
+    openlog("vncsession", LOG_PID, LOG_AUTH);
     syslog(LOG_CRIT, "execvp: %s", strerror(errno));
 
     _exit(EX_OSERR);

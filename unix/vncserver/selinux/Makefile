@@ -13,15 +13,16 @@ DATADIR=$(PREFIX)/share
 all: vncsession.pp.bz2
 
 %.pp.bz2: %.pp
-	bzip2 -9 $^
+	cat "$^" | bzip2 -9 > "$@"
 
 %.pp: %.te
 	make -f $(DATADIR)/selinux/devel/Makefile $@
+	rm -rf tmp
 
 clean:
 	rm -f *.pp *.pp.bz2
 	rm -rf tmp
 
-install: vncsession.pp.bz2
+install:
 	mkdir -p $(DESTDIR)$(DATADIR)/selinux/packages/targeted/
 	install vncsession.pp.bz2 $(DESTDIR)$(DATADIR)/selinux/packages/targeted/vncsession.pp.bz2

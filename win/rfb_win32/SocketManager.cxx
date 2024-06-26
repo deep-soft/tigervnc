@@ -24,8 +24,12 @@
 
 #include <winsock2.h>
 #include <list>
+
+#include <network/Socket.h>
+
 #include <rfb/LogWriter.h>
 #include <rfb/Timer.h>
+#include <rfb/VNCServer.h>
 #include <rfb/util.h>
 #include <rfb_win32/SocketManager.h>
 
@@ -46,7 +50,7 @@ SocketManager::~SocketManager() {
 
 static void requestAddressChangeEvents(network::SocketListener* sock_) {
   DWORD dummy = 0;
-  if (WSAIoctl(sock_->getFd(), SIO_ADDRESS_LIST_CHANGE, 0, 0, 0, 0, &dummy, 0, 0) == SOCKET_ERROR) {
+  if (WSAIoctl(sock_->getFd(), SIO_ADDRESS_LIST_CHANGE, nullptr, 0, nullptr, 0, &dummy, nullptr, nullptr) == SOCKET_ERROR) {
     DWORD err = WSAGetLastError();
     if (err != WSAEWOULDBLOCK)
       vlog.error("Unable to track address changes: 0x%08x", (unsigned)err);
@@ -55,7 +59,7 @@ static void requestAddressChangeEvents(network::SocketListener* sock_) {
 
 
 void SocketManager::addListener(network::SocketListener* sock_,
-                                network::SocketServer* srvr,
+                                VNCServer* srvr,
                                 AddressChangeNotifier* acn) {
   WSAEVENT event = WSACreateEvent();
   long flags = FD_ACCEPT | FD_CLOSE;
@@ -103,7 +107,7 @@ void SocketManager::remListener(network::SocketListener* sock) {
 }
 
 
-void SocketManager::addSocket(network::Socket* sock_, network::SocketServer* srvr, bool outgoing) {
+void SocketManager::addSocket(network::Socket* sock_, VNCServer* srvr, bool outgoing) {
   WSAEVENT event = WSACreateEvent();
   if (!event || !addEvent(event, this) ||
       (WSAEventSelect(sock_->getFd(), event, FD_READ | FD_CLOSE) == SOCKET_ERROR)) {
@@ -135,7 +139,7 @@ void SocketManager::remSocket(network::Socket* sock_) {
   throw rdr::Exception("Socket not registered");
 }
 
-bool SocketManager::getDisable(network::SocketServer* srvr)
+bool SocketManager::getDisable(VNCServer* srvr)
 {
   std::map<HANDLE,ListenInfo>::iterator i;
   for (i=listeners.begin(); i!=listeners.end(); i++) {
@@ -146,7 +150,7 @@ bool SocketManager::getDisable(network::SocketServer* srvr)
   throw rdr::Exception("Listener not registered");
 }
 
-void SocketManager::setDisable(network::SocketServer* srvr, bool disable)
+void SocketManager::setDisable(VNCServer* srvr, bool disable)
 {
   bool found = false;
   std::map<HANDLE,ListenInfo>::iterator i;
@@ -165,9 +169,9 @@ void SocketManager::setDisable(network::SocketServer* srvr, bool disable)
 int SocketManager::checkTimeouts() {
   int timeout = EventManager::checkTimeouts();
 
-  std::map<HANDLE,ListenInfo>::iterator i;
-  for (i=listeners.begin(); i!=listeners.end(); i++)
-    soonestTimeout(&timeout, Timer::checkTimeouts());
+  int nextTimeout = Timer::checkTimeouts();
+  if (nextTimeout >= 0 && nextTimeout < timeout)
+    timeout = nextTimeout;
 
   std::list<network::Socket*> shutdownSocks;
   std::map<HANDLE,ConnInfo>::iterator j, j_next;
@@ -206,7 +210,7 @@ void SocketManager::processEvent(HANDLE event) {
       network::Socket* new_sock = li.sock->accept();
       if (new_sock && li.disable) {
         delete new_sock;
-        new_sock = 0;
+        new_sock = nullptr;
       }
       if (new_sock)
         addSocket(new_sock, li.server, false);
@@ -225,11 +229,11 @@ void SocketManager::processEvent(HANDLE event) {
     try {
       // Process data from an active connection
 
-      WSANETWORKEVENTS events;
+      WSANETWORKEVENTS network_events;
       long eventMask;
 
       // Fetch why this event notification triggered
-      if (WSAEnumNetworkEvents(ci.sock->getFd(), event, &events) == SOCKET_ERROR)
+      if (WSAEnumNetworkEvents(ci.sock->getFd(), event, &network_events) == SOCKET_ERROR)
         throw rdr::SystemException("unable to get WSAEnumNetworkEvents:%u", WSAGetLastError());
 
       // Cancel event notification for this socket
@@ -241,14 +245,14 @@ void SocketManager::processEvent(HANDLE event) {
 
 
       // Call the socket server to process the event
-      if (events.lNetworkEvents & FD_WRITE) {
+      if (network_events.lNetworkEvents & FD_WRITE) {
         ci.server->processSocketWriteEvent(ci.sock);
         if (ci.sock->isShutdown()) {
           remSocket(ci.sock);
           return;
         }
       }
-      if (events.lNetworkEvents & (FD_READ | FD_CLOSE)) {
+      if (network_events.lNetworkEvents & (FD_READ | FD_CLOSE)) {
         ci.server->processSocketReadEvent(ci.sock);
         if (ci.sock->isShutdown()) {
           remSocket(ci.sock);

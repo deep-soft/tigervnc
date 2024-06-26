@@ -23,6 +23,7 @@
 #include <config.h>
 #endif
 
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -71,7 +72,7 @@ static const char* getpassword(const char* prompt) {
       result[strlen(result)-1] = 0;
     return buf;
   }
-  return 0;
+  return nullptr;
 }
 
 // Reads passwords from stdin and prints encrypted passwords to stdout.
@@ -80,7 +81,7 @@ static int encrypt_pipe() {
 
   // We support a maximum of two passwords right now
   for (i = 0;i < 2;i++) {
-    const char *result = getpassword(NULL);
+    const char *result = getpassword(nullptr);
     if (!result)
       break;
 
@@ -101,7 +102,7 @@ static int encrypt_pipe() {
 static std::vector<uint8_t> readpassword() {
   while (true) {
     const char *passwd = getpassword("Password:");
-    if (passwd == NULL) {
+    if (passwd == nullptr) {
       perror("getpassword error");
       exit(1);
     }
@@ -116,7 +117,7 @@ static std::vector<uint8_t> readpassword() {
     }
 
     passwd = getpassword("Verify:");
-    if (passwd == NULL) {
+    if (passwd == nullptr) {
       perror("getpass error");
       exit(1);
     }
@@ -156,13 +157,16 @@ int main(int argc, char** argv)
   }
 
   if (fname[0] == '\0') {
-    const char *homeDir = os::getvnchomedir();
-    if (homeDir == NULL) {
-      fprintf(stderr, "Can't obtain VNC home directory\n");
+    const char *configDir = os::getvncconfigdir();
+    if (configDir == nullptr) {
+      fprintf(stderr, "Can't obtain VNC config directory\n");
       exit(1);
     }
-    mkdir(homeDir, 0777);
-    snprintf(fname, sizeof(fname), "%s/passwd", homeDir);
+    if (os::mkdir_p(configDir, 0777) == -1) {
+      fprintf(stderr, "Could not create VNC config directory: %s\n", strerror(errno));
+      exit(1);
+    }
+    snprintf(fname, sizeof(fname), "%s/passwd", configDir);
   }
 
   while (true) {
@@ -171,7 +175,7 @@ int main(int argc, char** argv)
 
     fprintf(stderr, "Would you like to enter a view-only password (y/n)? ");
     char yesno[3];
-    if (fgets(yesno, 3, stdin) != NULL && (yesno[0] == 'y' || yesno[0] == 'Y')) {
+    if (fgets(yesno, 3, stdin) != nullptr && (yesno[0] == 'y' || yesno[0] == 'Y')) {
       obfuscatedReadOnly = readpassword();
     } else {
       fprintf(stderr, "A view-only password is not used\n");

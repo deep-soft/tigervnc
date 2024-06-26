@@ -62,14 +62,14 @@ BoolParameter iconic("iconic", "Start with window iconified", 0);
 #define SET_PRIMARY "SetPrimary"
 #define SEND_PRIMARY "SendPrimary"
 
-char* programName = 0;
+char* programName = nullptr;
 Display* dpy;
 int vncExtEventBase, vncExtErrorBase;
 
-static bool getBoolParam(Display* dpy, const char* param) {
+static bool getBoolParam(Display* dpy_, const char* param) {
   char* data;
   int len;
-  if (XVncExtGetParam(dpy, param, &data, &len)) {
+  if (XVncExtGetParam(dpy_, param, &data, &len)) {
     if (strcmp(data,"1") == 0) return true;
   }
   return false;
@@ -80,13 +80,13 @@ class VncConfigWindow : public TXWindow, public TXEventHandler,
                         public TXCheckboxCallback,
                         public QueryResultCallback {
 public:
-  VncConfigWindow(Display* dpy)
-    : TXWindow(dpy, 300, 100),
-      acceptClipboard(dpy, "Accept clipboard from viewers", this, false, this),
-      setPrimaryCB(dpy, "Also set primary selection", this, false, this),
-      sendClipboard(dpy, "Send clipboard to viewers", this, false, this),
-      sendPrimaryCB(dpy, "Send primary selection to viewers", this,false,this),
-      queryConnectDialog(0)
+  VncConfigWindow(Display* dpy_)
+    : TXWindow(dpy_, 300, 100),
+      acceptClipboard(dpy_, "Accept clipboard from viewers", this, false, this),
+      setPrimaryCB(dpy_, "Also set primary selection", this, false, this),
+      sendClipboard(dpy_, "Send clipboard to viewers", this, false, this),
+      sendPrimaryCB(dpy_, "Send primary selection to viewers", this,false,this),
+      queryConnectDialog(nullptr)
   {
     int y = yPad;
     acceptClipboard.move(xPad, y);
@@ -104,18 +104,18 @@ public:
     sendPrimaryCB.disabled(!sendClipboard.checked());
     y += sendPrimaryCB.height();
     setEventHandler(this);
-    toplevel("VNC config", this, 0, 0, 0, iconic);
+    toplevel("VNC config", this, 0, nullptr, nullptr, iconic);
     XVncExtSelectInput(dpy, win(), VncExtQueryConnectMask);
   }
 
   // handleEvent()
 
-  virtual void handleEvent(TXWindow* /*w*/, XEvent* ev) {
+  void handleEvent(TXWindow* /*w*/, XEvent* ev) override {
     if (ev->type == vncExtEventBase + VncExtQueryConnectNotify) {
        vlog.debug("query connection event");
        if (queryConnectDialog)
          delete queryConnectDialog;
-       queryConnectDialog = 0;
+       queryConnectDialog = nullptr;
        char* qcAddress;
        char* qcUser;
        int qcTimeout;
@@ -134,12 +134,12 @@ public:
   }
 
   // TXDeleteWindowCallback method
-  virtual void deleteWindow(TXWindow* /*w*/) {
+  void deleteWindow(TXWindow* /*w*/) override {
     exit(1);
   }
 
   // TXCheckboxCallback method
-  virtual void checkboxSelect(TXCheckbox* checkbox) {
+  void checkboxSelect(TXCheckbox* checkbox) override {
     if (checkbox == &acceptClipboard) {
       XVncExtSetParam(dpy, (acceptClipboard.checked()
                             ? ACCEPT_CUT_TEXT "=1" : ACCEPT_CUT_TEXT "=0"));
@@ -158,10 +158,10 @@ public:
   }
 
   // QueryResultCallback interface
-  virtual void queryApproved() {
+  void queryApproved() override {
     XVncExtApproveConnect(dpy, queryConnectId, 1);
   }
-  virtual void queryRejected() {
+  void queryRejected() override {
     XVncExtApproveConnect(dpy, queryConnectId, 0);
   }
 
@@ -177,8 +177,8 @@ static void usage()
 {
   fprintf(stderr,"usage: %s [parameters]\n",
           programName);
-  fprintf(stderr,"       %s [parameters] -connect <host>[:<port>]\n",
-          programName);
+  fprintf(stderr,"       %s [parameters] -connect "
+          "[-view-only] <host>[:<port>]\n", programName);
   fprintf(stderr,"       %s [parameters] -disconnect\n", programName);
   fprintf(stderr,"       %s [parameters] [-set] <Xvnc-param>=<value> ...\n",
           programName);
@@ -240,13 +240,18 @@ int main(int argc, char** argv)
   if (i < argc) {
     for (; i < argc; i++) {
       if (strcmp(argv[i], "-connect") == 0) {
+        Bool viewOnly = False;
         i++;
+        if (strcmp(argv[i], "-view-only") == 0) {
+          viewOnly = True;
+          i++;
+        }
         if (i >= argc) usage();
-        if (!XVncExtConnect(dpy, argv[i])) {
+        if (!XVncExtConnect(dpy, argv[i], viewOnly)) {
           fprintf(stderr,"connecting to %s failed\n",argv[i]);
         }
       } else if (strcmp(argv[i], "-disconnect") == 0) {
-        if (!XVncExtConnect(dpy, "")) {
+        if (!XVncExtConnect(dpy, "", False)) {
           fprintf(stderr,"disconnecting all clients failed\n");
         }
       } else if (strcmp(argv[i], "-get") == 0) {
@@ -273,8 +278,8 @@ int main(int argc, char** argv)
       } else if (strcmp(argv[i], "-list") == 0) {
         int nParams;
         char** list = XVncExtListParams(dpy, &nParams);
-        for (int i = 0; i < nParams; i++) {
-          printf("%s\n",list[i]);
+        for (int n = 0; n < nParams; n++) {
+          printf("%s\n",list[n]);
         }
         XVncExtFreeParamList(list);
       } else if (strcmp(argv[i], "-set") == 0) {
@@ -301,14 +306,14 @@ int main(int argc, char** argv)
 
     while (true) {
       struct timeval tv;
-      struct timeval* tvp = 0;
+      struct timeval* tvp = nullptr;
 
       // Process any incoming X events
       TXWindow::handleXEvents(dpy);
       
       // Process expired timers and get the time until the next one
       int timeoutMs = Timer::checkTimeouts();
-      if (timeoutMs) {
+      if (timeoutMs >= 0) {
         tv.tv_sec = timeoutMs / 1000;
         tv.tv_usec = (timeoutMs % 1000) * 1000;
         tvp = &tv;
@@ -324,7 +329,7 @@ int main(int argc, char** argv)
       fd_set rfds;
       FD_ZERO(&rfds);
       FD_SET(ConnectionNumber(dpy), &rfds);
-      int n = select(FD_SETSIZE, &rfds, 0, 0, tvp);
+      int n = select(FD_SETSIZE, &rfds, nullptr, nullptr, tvp);
       if (n < 0) throw rdr::SystemException("select",errno);
     }
 
