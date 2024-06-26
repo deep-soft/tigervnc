@@ -98,7 +98,7 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/action-gh-release@v2
+        uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
@@ -185,7 +185,7 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/action-gh-release@v2
+        uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
@@ -240,7 +240,7 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/action-gh-release@v2
+        uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
@@ -284,7 +284,7 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/action-gh-release@v2
+        uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
@@ -333,7 +333,7 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/action-gh-release@v2
+        uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
@@ -378,7 +378,7 @@ jobs:
 
       - name: Publish Release
         continue-on-error: true
-        uses: deep-soft/action-gh-release@v2
+        uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
