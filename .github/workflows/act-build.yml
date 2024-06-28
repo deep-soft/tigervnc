@@ -348,13 +348,13 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
+        # skip: - centos7, bionic
         target:
-          - centos7
           - rocky8
           - rocky9
-          - bionic
           - focal
           - jammy
+          - noble
       fail-fast: false
     runs-on: ubuntu-latest
     env:
