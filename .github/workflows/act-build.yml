@@ -178,7 +178,7 @@ jobs:
         run: |
           make tarball
 
-      - uses: deep-soft/upload-artifact@v3
+      - uses: deep-soft/upload-artifact@v4
         with:
           name: Linux (Ubuntu)
           path: build/tigervnc-*.tar.gz
@@ -233,7 +233,7 @@ jobs:
         run: |
           make installer winvnc_installer
 
-      - uses: deep-soft/upload-artifact@v3
+      - uses: deep-soft/upload-artifact@v4
         with:
           name: Windows
           path: build/release/tigervnc*.exe
@@ -277,7 +277,7 @@ jobs:
         run: |
           make dmg
 
-      - uses: deep-soft/upload-artifact@v3
+      - uses: deep-soft/upload-artifact@v4
         with:
           name: macOS
           path: build/TigerVNC-*.dmg
@@ -306,7 +306,7 @@ jobs:
         uses: deep-soft/checkout@v4
 
       - name: Setup java
-        uses: deep-soft/setup-java@v3
+        uses: deep-soft/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
@@ -321,7 +321,7 @@ jobs:
         run: |
           make
 
-      - uses: deep-soft/upload-artifact@v3
+      - uses: deep-soft/upload-artifact@v4
         with:
           name: Java (${{ matrix.java }})
           path: java/build/VncViewer.jar
@@ -371,7 +371,7 @@ jobs:
         run: |
           .github/containers/$DOCKER/build.sh
 
-      - uses: deep-soft/upload-artifact@v3
+      - uses: deep-soft/upload-artifact@v4
         with:
           name: Packages (${{ matrix.target }})
           path: .github/containers/${{ matrix.target }}/result
