@@ -100,7 +100,7 @@ bool SSecurityVncAuth::processMsg()
   pg->getVncAuthPasswd(&passwd, &passwdReadOnly);
 
   if (passwd.empty())
-    throw AuthFailureException("No password configured for VNC Auth");
+    throw Exception("No password configured");
 
   if (verifyResponse(passwd.c_str())) {
     accessRights = AccessDefault;
@@ -113,7 +113,7 @@ bool SSecurityVncAuth::processMsg()
     return true;
   }
 
-  throw AuthFailureException();
+  throw AuthFailureException("Authentication failed");
 }
 
 VncAuthPasswdParameter::VncAuthPasswdParameter(const char* name_,

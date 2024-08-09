@@ -561,11 +561,11 @@ void SSecurityRSAAES::verifyUserPass()
 #endif
   if (!valid->validate(sc, username, password)) {
     delete valid;
-    throw AuthFailureException("invalid password or username");
+    throw AuthFailureException("Authentication failed");
   }
   delete valid;
 #else
-  throw AuthFailureException("No password validator configured");
+  throw Exception("No password validator configured");
 #endif
 }
 
@@ -576,7 +576,7 @@ void SSecurityRSAAES::verifyPass()
   pg->getVncAuthPasswd(&passwd, &passwdReadOnly);
 
   if (passwd.empty())
-    throw AuthFailureException("No password configured for VNC Auth");
+    throw Exception("No password configured");
 
   if (password == passwd) {
     accessRights = AccessDefault;
@@ -588,7 +588,7 @@ void SSecurityRSAAES::verifyPass()
     return;
   }
 
-  throw AuthFailureException();
+  throw AuthFailureException("Authentication failed");
 }
 
 const char* SSecurityRSAAES::getUserName() const
