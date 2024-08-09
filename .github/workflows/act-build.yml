@@ -381,9 +381,9 @@ jobs:
         uses: deep-soft/action-gh-release@v2.1
         with:
           #tag: ${{github.ref_name}}
+          #allowUpdates: true
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
-          allowUpdates: true
           files: |
             .github/containers/${{ matrix.target }}/result
             ${{ env.ASSET_SRC }}
