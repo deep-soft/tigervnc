@@ -37,6 +37,9 @@
 
 #include <termios.h>
 
+#ifdef HAVE_PWQUALITY
+#include <pwquality.h>
+#endif
 
 using namespace rfb;
 
@@ -99,6 +102,36 @@ static int encrypt_pipe() {
   return 0;
 }
 
+#ifdef HAVE_PWQUALITY
+static int check_passwd_pwquality(const char *password)
+{
+	int r;
+	void *auxerror;
+	pwquality_settings_t *pwq;
+	pwq = pwquality_default_settings();
+	if (!pwq)
+		return -EINVAL;
+	r = pwquality_read_config(pwq, NULL, &auxerror);
+	if (r) {
+		printf("Cannot check password quality: %s \n",
+			pwquality_strerror(NULL, 0, r, auxerror));
+		pwquality_free_settings(pwq);
+		return -EINVAL;
+	}
+
+	r = pwquality_check(pwq, password, NULL, NULL, &auxerror);
+	if (r < 0) {
+		printf("Password quality check failed:\n %s \n",
+			pwquality_strerror(NULL, 0, r, auxerror));
+		r = -EPERM;
+	}
+	pwquality_free_settings(pwq);
+
+	//return the score of password quality
+	return r;
+}
+#endif
+
 static std::vector<uint8_t> readpassword() {
   while (true) {
     const char *passwd = getpassword("Password:");
@@ -106,15 +139,32 @@ static std::vector<uint8_t> readpassword() {
       perror("getpassword error");
       exit(1);
     }
+
     std::string first = passwd;
+
+    if (first.empty()) {
+      fprintf(stderr,"Password not changed\n");
+      exit(1);
+    }
+
+    if (first.size() > 8) {
+      fprintf(stderr,"Password should not be greater than 8 characters\nBecause only 8 valid characters are used - try again\n");
+      continue;
+    }
+
+#ifdef HAVE_PWQUALITY
+    //the function return score of password quality
+    int r = check_passwd_pwquality(passwd);
+    if (r < 0){
+      printf("Password quality check failed, please set it correctly.\n");
+      continue;
+    }
+#else
     if (first.size() < 6) {
-      if (first.empty()) {
-        fprintf(stderr,"Password not changed\n");
-        exit(1);
-      }
       fprintf(stderr,"Password must be at least 6 characters - try again\n");
       continue;
     }
+#endif
 
     passwd = getpassword("Verify:");
     if (passwd == nullptr) {
@@ -159,12 +209,15 @@ int main(int argc, char** argv)
   if (fname[0] == '\0') {
     const char *configDir = os::getvncconfigdir();
     if (configDir == nullptr) {
-      fprintf(stderr, "Can't obtain VNC config directory\n");
+      fprintf(stderr, "Could not determine VNC config directory path\n");
       exit(1);
     }
     if (os::mkdir_p(configDir, 0777) == -1) {
-      fprintf(stderr, "Could not create VNC config directory: %s\n", strerror(errno));
-      exit(1);
+      if (errno != EEXIST) {
+        fprintf(stderr, "Could not create VNC config directory \"%s\": %s\n",
+                configDir, strerror(errno));
+        exit(1);
+      }
     }
     snprintf(fname, sizeof(fname), "%s/passwd", configDir);
   }

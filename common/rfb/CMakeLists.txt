@@ -50,7 +50,6 @@ add_library(rfb STATIC
   SSecurityStack.cxx
   SSecurityVncAuth.cxx
   SSecurityVeNCrypt.cxx
-  ScaleFilters.cxx
   Timer.cxx
   TightDecoder.cxx
   TightEncoder.cxx
@@ -101,6 +100,10 @@ if(GNUTLS_FOUND)
   target_sources(rfb PRIVATE CSecurityTLS.cxx SSecurityTLS.cxx)
   target_include_directories(rfb SYSTEM PUBLIC ${GNUTLS_INCLUDE_DIR})
   target_link_libraries(rfb ${GNUTLS_LIBRARIES})
+  # FIXME: Hack to block it marking gnutls_free() as dllimport
+  if(WIN32 AND BUILD_STATIC)
+    target_compile_definitions(rfb PRIVATE GNUTLS_INTERNAL_BUILD)
+  endif()
 endif()
 
 if (NETTLE_FOUND)

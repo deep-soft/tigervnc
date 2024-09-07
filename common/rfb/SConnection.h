@@ -61,8 +61,11 @@ namespace rfb {
     // there is data to read on the InStream.
     void initialiseProtocol();
 
-    // processMsg() should be called whenever there is data to read on the
-    // InStream.  You must have called initialiseProtocol() first.
+    // processMsg() should be called whenever there is data available on
+    // the CConnection's current InStream. It will process at most one
+    // RFB message before returning. If there was insufficient data,
+    // then it will return false and should be called again once more
+    // data is available.
     bool processMsg();
 
     // approveConnection() is called to either accept or reject the connection.
@@ -213,10 +216,10 @@ namespace rfb {
     int32_t getPreferredEncoding() { return preferredEncoding; }
 
   protected:
-    // throwConnFailedException() prints a message to the log, sends a conn
-    // failed message to the client (if possible) and throws a
-    // ConnFailedException.
-    void throwConnFailedException(const char* format, ...)
+    // failConnection() prints a message to the log, sends a connection
+    // failed message to the client (if possible) and throws an
+    // Exception.
+    void failConnection(const char* format, ...)
       __attribute__((__format__ (__printf__, 2, 3)));
 
     void setState(stateEnum s) { state_ = s; }

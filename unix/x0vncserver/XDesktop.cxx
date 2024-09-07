@@ -342,7 +342,7 @@ void XDesktop::queryConnection(network::Socket* sock,
   queryConnectDialog->map();
 }
 
-void XDesktop::pointerEvent(const Point& pos, int buttonMask) {
+void XDesktop::pointerEvent(const Point& pos, uint8_t buttonMask) {
 #ifdef HAVE_XTEST
   if (!haveXtest) return;
   XTestFakeMotionEvent(dpy, DefaultScreen(dpy),
@@ -598,9 +598,6 @@ void XDesktop::keyEvent(uint32_t keysym, uint32_t xtcode, bool down) {
   (void)xtcode;
   (void)down;
 #endif
-}
-
-void XDesktop::clientCutText(const char* /*str*/) {
 }
 
 ScreenSet XDesktop::computeScreenLayout()

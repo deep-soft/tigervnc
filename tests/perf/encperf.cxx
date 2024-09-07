@@ -108,6 +108,8 @@ public:
   void setColourMapEntries(int, int, uint16_t*) override;
   void bell() override;
   void serverCutText(const char*) override;
+  virtual void getUserPasswd(bool secure, std::string *user, std::string *password) override;
+  virtual bool showMsgBox(rfb::MsgBoxFlags flags, const char *title, const char *text) override;
 
 public:
   double decodeTime;
@@ -189,7 +191,7 @@ CConn::CConn(const char *filename)
   // Nor the frame buffer size and format
   rfb::PixelFormat pf;
   pf.parse(format);
-  setPixelFormat(pf);
+  server.setPF(pf);
   setDesktopSize(width, height);
 
   sc = new SConn();
@@ -277,6 +279,15 @@ void CConn::bell()
 
 void CConn::serverCutText(const char*)
 {
+}
+
+void CConn::getUserPasswd(bool, std::string *, std::string *)
+{
+}
+
+bool CConn::showMsgBox(rfb::MsgBoxFlags, const char *, const char *)
+{
+    return true;
 }
 
 Manager::Manager(class rfb::SConnection *conn_) :

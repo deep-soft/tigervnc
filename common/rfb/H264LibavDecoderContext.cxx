@@ -18,6 +18,9 @@
  * USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 extern "C" {
 #include <libavutil/imgutils.h>
@@ -43,7 +46,6 @@ bool H264LibavDecoderContext::initCodec() {
   os::AutoMutex lock(&mutex);
 
   sws = nullptr;
-  swsBuffer = nullptr;
   h264WorkBuffer = nullptr;
   h264WorkBufferLength = 0;
 
@@ -87,9 +89,6 @@ bool H264LibavDecoderContext::initCodec() {
     return false;
   }
 
-  int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB32, rect.width(), rect.height(), 1);
-  swsBuffer = new uint8_t[numBytes];
-
   initialized = true;
   return true;
 }
@@ -101,8 +100,9 @@ void H264LibavDecoderContext::freeCodec() {
     return;
   av_parser_close(parser);
   avcodec_free_context(&avctx);
+  av_frame_free(&rgbFrame);
   av_frame_free(&frame);
-  delete[] swsBuffer;
+  sws_freeContext(sws);
   free(h264WorkBuffer);
   initialized = false;
 }
@@ -218,13 +218,39 @@ void H264LibavDecoderContext::decode(const uint8_t* h264_in_buffer,
 
   sws = sws_getCachedContext(sws, frame->width, frame->height, avctx->pix_fmt,
                              frame->width, frame->height, AV_PIX_FMT_RGB32,
-                             0, nullptr, nullptr, nullptr);
+                             SWS_POINT, nullptr, nullptr, nullptr);
 
-  int stride;
-  pb->getBuffer(rect, &stride);
-  int dst_linesize = stride * pb->getPF().bpp/8;  // stride is in pixels, linesize is in bytes (stride x4). We need bytes
+  int inFull, outFull, brightness, contrast, saturation;
+  const int* inTable;
+  const int* outTable;
 
-  sws_scale(sws, frame->data, frame->linesize, 0, frame->height, &swsBuffer, &dst_linesize);
+  sws_getColorspaceDetails(sws, (int**)&inTable, &inFull, (int**)&outTable,
+      &outFull, &brightness, &contrast, &saturation);
+  if (frame->colorspace != AVCOL_SPC_UNSPECIFIED) {
+    inTable = sws_getCoefficients(frame->colorspace);
+  }
+  if (frame->color_range != AVCOL_RANGE_UNSPECIFIED) {
+    inFull = frame->color_range == AVCOL_RANGE_JPEG;
+  }
+  sws_setColorspaceDetails(sws, inTable, inFull, outTable, outFull, brightness,
+      contrast, saturation);
 
-  pb->imageRect(rect, swsBuffer, stride);
+  if (rgbFrame && (rgbFrame->width != frame->width || rgbFrame->height != frame->height)) {
+    av_frame_free(&rgbFrame);
+
+  }
+
+  if (!rgbFrame) {
+    rgbFrame = av_frame_alloc();
+    // TODO: Can we really assume that the pixel format will always be RGB32?
+    rgbFrame->format = AV_PIX_FMT_RGB32;
+    rgbFrame->width = frame->width;
+    rgbFrame->height = frame->height;
+    av_frame_get_buffer(rgbFrame, 0);
+  }
+
+  sws_scale(sws, frame->data, frame->linesize, 0, frame->height, rgbFrame->data,
+            rgbFrame->linesize);
+
+  pb->imageRect(rect, rgbFrame->data[0], rgbFrame->linesize[0] / 4);
 }

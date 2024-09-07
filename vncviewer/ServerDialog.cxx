@@ -38,8 +38,10 @@
 #include <os/os.h>
 #include <rfb/Exception.h>
 #include <rfb/LogWriter.h>
+#include <rfb/util.h>
 
 #include "fltk/layout.h"
+#include "fltk/util.h"
 #include "ServerDialog.h"
 #include "OptionsDialog.h"
 #include "i18n.h"
@@ -137,7 +139,8 @@ void ServerDialog::run(const char* servername, char *newservername)
 
     dialog.serverName->clear();
     for(i = 0; i < dialog.serverHistory.size(); ++i)
-      dialog.serverName->add(dialog.serverHistory[i].c_str());
+      fltk_menu_add(dialog.serverName->menubutton(),
+                    dialog.serverHistory[i].c_str(), 0, nullptr);
   } catch (Exception& e) {
     vlog.error("%s", e.str());
     fl_alert(_("Unable to load the server history:\n\n%s"),
@@ -317,7 +320,7 @@ void ServerDialog::loadServerHistory()
 
   const char* stateDir = os::getvncstatedir();
   if (stateDir == nullptr)
-    throw Exception(_("Could not obtain the state directory path"));
+    throw Exception(_("Could not determine VNC state directory path"));
 
   char filepath[PATH_MAX];
   snprintf(filepath, sizeof(filepath), "%s/%s", stateDir, SERVER_HISTORY);
@@ -329,8 +332,8 @@ void ServerDialog::loadServerHistory()
       // no history file
       return;
     }
-    throw Exception(_("Could not open \"%s\": %s"),
-                    filepath, strerror(errno));
+    std::string msg = format(_("Could not open \"%s\""), filepath);
+    throw rdr::SystemException(msg.c_str(), errno);
   }
 
   int lineNr = 0;
@@ -344,8 +347,9 @@ void ServerDialog::loadServerHistory()
         break;
 
       fclose(f);
-      throw Exception(_("Failed to read line %d in file %s: %s"),
-                      lineNr, filepath, strerror(errno));
+      std::string msg = format(_("Failed to read line %d in "
+                                 "file \"%s\""), lineNr, filepath);
+      throw rdr::SystemException(msg.c_str(), errno);
     }
 
     int len = strlen(line);
@@ -383,16 +387,17 @@ void ServerDialog::saveServerHistory()
 
   const char* stateDir = os::getvncstatedir();
   if (stateDir == nullptr)
-    throw Exception(_("Could not obtain the state directory path"));
+    throw Exception(_("Could not determine VNC state directory path"));
 
   char filepath[PATH_MAX];
   snprintf(filepath, sizeof(filepath), "%s/%s", stateDir, SERVER_HISTORY);
 
   /* Write server history to file */
   FILE* f = fopen(filepath, "w+");
-  if (!f)
-    throw Exception(_("Could not open \"%s\": %s"),
-                    filepath, strerror(errno));
+  if (!f) {
+    std::string msg = format(_("Could not open \"%s\""), filepath);
+    throw rdr::SystemException(msg.c_str(), errno);
+  }
 
   // Save the last X elements to the config file.
   for(size_t idx=0; idx < serverHistory.size() && idx <= SERVER_HISTORY_SIZE; idx++)

@@ -21,6 +21,7 @@
 #endif
 
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -109,12 +110,12 @@ void UserDialog::getUserPasswd(bool secure_, std::string* user,
   }
 
   if (!user && passwordFileName[0]) {
-    std::vector<uint8_t> obfPwd(256);
+    std::vector<uint8_t> obfPwd(8);
     FILE* fp;
 
     fp = fopen(passwordFileName, "rb");
     if (!fp)
-      throw rfb::Exception(_("Opening password file failed"));
+      throw rdr::SystemException(_("Opening password file failed"), errno);
 
     obfPwd.resize(fread(obfPwd.data(), 1, obfPwd.size(), fp));
     fclose(fp);
@@ -248,7 +249,7 @@ void UserDialog::getUserPasswd(bool secure_, std::string* user,
     throw rfb::AuthCancelledException();
 }
 
-bool UserDialog::showMsgBox(int flags, const char* title, const char* text)
+bool UserDialog::showMsgBox(MsgBoxFlags flags, const char* title, const char* text)
 {
   char buffer[1024];
 

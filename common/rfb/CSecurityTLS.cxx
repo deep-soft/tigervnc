@@ -38,7 +38,6 @@
 #include <rfb/CConnection.h>
 #include <rfb/LogWriter.h>
 #include <rfb/Exception.h>
-#include <rfb/UserMsgBox.h>
 #include <rfb/util.h>
 #include <rdr/TLSException.h>
 #include <rdr/TLSInStream.h>
@@ -46,16 +45,6 @@
 #include <os/os.h>
 
 #include <gnutls/x509.h>
-
-/*
- * GNUTLS doesn't correctly export gnutls_free symbol which is
- * a function pointer. Linking with Visual Studio 2008 Express will
- * fail when you call gnutls_free().
- */
-#if WIN32
-#undef gnutls_free
-#define gnutls_free free
-#endif
 
 using namespace rfb;
 
@@ -344,11 +333,12 @@ void CSecurityTLS::checkSession()
     if (fatal_status != 0) {
       std::string error;
 
-      if (gnutls_certificate_verification_status_print(fatal_status,
-                                                       GNUTLS_CRT_X509,
-                                                       &status_str,
-                                                       0) < 0)
-        throw Exception("Failed to get certificate error description");
+      err = gnutls_certificate_verification_status_print(fatal_status,
+                                                         GNUTLS_CRT_X509,
+                                                         &status_str,
+                                                         0);
+      if (err != GNUTLS_E_SUCCESS)
+        throw rdr::TLSException("Failed to get certificate error description", err);
 
       error = (const char*)status_str.data;
 
@@ -357,11 +347,12 @@ void CSecurityTLS::checkSession()
       throw Exception("Invalid server certificate: %s", error.c_str());
     }
 
-    if (gnutls_certificate_verification_status_print(status,
-                                                     GNUTLS_CRT_X509,
-                                                     &status_str,
-                                                     0) < 0)
-      throw Exception("Failed to get certificate error description");
+    err = gnutls_certificate_verification_status_print(status,
+                                                       GNUTLS_CRT_X509,
+                                                       &status_str,
+                                                       0);
+    if (err != GNUTLS_E_SUCCESS)
+      throw rdr::TLSException("Failed to get certificate error description", err);
 
     vlog.info("Server certificate errors: %s", status_str.data);
 
@@ -378,8 +369,9 @@ void CSecurityTLS::checkSession()
   gnutls_x509_crt_t crt;
   gnutls_x509_crt_init(&crt);
 
-  if (gnutls_x509_crt_import(crt, &cert_list[0], GNUTLS_X509_FMT_DER) < 0)
-    throw Exception("decoding of certificate failed");
+  err = gnutls_x509_crt_import(crt, &cert_list[0], GNUTLS_X509_FMT_DER);
+  if (err != GNUTLS_E_SUCCESS)
+    throw rdr::TLSException("Failed to decode server certificate", err);
 
   if (gnutls_x509_crt_check_hostname(crt, client->getServerName()) == 0) {
     vlog.info("Server certificate doesn't match given server name");
@@ -452,7 +444,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Unknown certificate issuer",
                            text.c_str()))
         throw AuthCancelledException();
@@ -472,8 +464,7 @@ void CSecurityTLS::checkSession()
                     "\n"
                     "Do you want to make an exception for this "
                     "server?", info.data);
-
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Certificate is not yet valid",
                            text.c_str()))
         throw AuthCancelledException();
@@ -492,7 +483,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Expired certificate",
                            text.c_str()))
         throw AuthCancelledException();
@@ -511,7 +502,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Insecure certificate algorithm",
                            text.c_str()))
         throw AuthCancelledException();
@@ -536,7 +527,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", client->getServerName(), info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Certificate hostname mismatch",
                            text.c_str()))
         throw AuthCancelledException();
@@ -562,7 +553,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Unexpected server certificate",
                            text.c_str()))
         throw AuthCancelledException();
@@ -585,7 +576,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Unexpected server certificate",
                            text.c_str()))
         throw AuthCancelledException();
@@ -606,7 +597,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Unexpected server certificate",
                            text.c_str()))
         throw AuthCancelledException();
@@ -627,7 +618,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Unexpected server certificate",
                            text.c_str()))
         throw AuthCancelledException();
@@ -654,7 +645,7 @@ void CSecurityTLS::checkSession()
                     "Do you want to make an exception for this "
                     "server?", client->getServerName(), info.data);
 
-      if (!msg->showMsgBox(UserMsgBox::M_YESNO,
+      if (!cc->showMsgBox(MsgBoxFlags::M_YESNO,
                            "Unexpected server certificate",
                            text.c_str()))
         throw AuthCancelledException();

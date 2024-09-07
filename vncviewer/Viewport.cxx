@@ -660,7 +660,7 @@ int Viewport::handle(int event)
   return Fl_Widget::handle(event);
 }
 
-void Viewport::sendPointerEvent(const rfb::Point& pos, int buttonMask)
+void Viewport::sendPointerEvent(const rfb::Point& pos, uint8_t buttonMask)
 {
   if (viewOnly)
       return;
@@ -790,7 +790,7 @@ void Viewport::flushPendingClipboard()
 }
 
 
-void Viewport::handlePointerEvent(const rfb::Point& pos, int buttonMask)
+void Viewport::handlePointerEvent(const rfb::Point& pos, uint8_t buttonMask)
 {
   filterPointerEvent(pos, buttonMask);
 }
@@ -1315,6 +1315,12 @@ void Viewport::popupContextMenu()
       ((DesktopWindow*)window())->fullscreen_on();
     break;
   case ID_MINIMIZE:
+#ifdef __APPLE__
+    // FIXME: Workaround for not being able to minimize in fullscreen
+    // https://github.com/TigerVNC/tigervnc/pull/1813
+    if (window()->fullscreen_active())
+      window()->fullscreen_off();
+#endif
     window()->iconize();
     break;
   case ID_RESIZE:
