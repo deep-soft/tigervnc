@@ -37,6 +37,7 @@
 
 #include <os/os.h>
 #include <rfb/Exception.h>
+#include <rfb/Hostname.h>
 #include <rfb/LogWriter.h>
 #include <rfb/util.h>
 
@@ -133,14 +134,12 @@ void ServerDialog::run(const char* servername, char *newservername)
   dialog.show();
 
   try {
-    size_t i;
-
     dialog.loadServerHistory();
 
     dialog.serverName->clear();
-    for(i = 0; i < dialog.serverHistory.size(); ++i)
+    for (const string& entry : dialog.serverHistory)
       fltk_menu_add(dialog.serverName->menubutton(),
-                    dialog.serverHistory[i].c_str(), 0, nullptr);
+                    entry.c_str(), 0, nullptr);
   } catch (Exception& e) {
     vlog.error("%s", e.str());
     fl_alert(_("Unable to load the server history:\n\n%s"),
@@ -294,13 +293,12 @@ void ServerDialog::handleConnect(Fl_Widget* /*widget*/, void *data)
              e.str());
   }
 
+  // avoid duplicates in the history
+  dialog->serverHistory.remove(servername);
+  dialog->serverHistory.insert(dialog->serverHistory.begin(), servername);
+
   try {
-    vector<string>::iterator elem = std::find(dialog->serverHistory.begin(), dialog->serverHistory.end(), servername);
-    // avoid duplicates in the history
-    if(dialog->serverHistory.end() == elem) {
-      dialog->serverHistory.insert(dialog->serverHistory.begin(), servername);
-      dialog->saveServerHistory();
-    }
+    dialog->saveServerHistory();
   } catch (Exception& e) {
     vlog.error("%s", e.str());
     fl_alert(_("Unable to save the server history:\n\n%s"),
@@ -309,14 +307,42 @@ void ServerDialog::handleConnect(Fl_Widget* /*widget*/, void *data)
 }
 
 
+static bool same_server(const string& a, const string& b)
+{
+  string hostA, hostB;
+  int portA, portB;
+
+#ifndef WIN32
+  if ((a.find("/") != string::npos) || (b.find("/") != string::npos))
+    return a == b;
+#endif
+
+  try {
+    getHostAndPort(a.c_str(), &hostA, &portA);
+    getHostAndPort(b.c_str(), &hostB, &portB);
+  } catch (Exception& e) {
+    return false;
+  }
+
+  if (hostA != hostB)
+    return false;
+
+  if (portA != portB)
+    return false;
+
+  return true;
+}
+
+
 void ServerDialog::loadServerHistory()
 {
+  list<string> rawHistory;
+
   serverHistory.clear();
 
 #ifdef _WIN32
-  loadHistoryFromRegKey(serverHistory);
-  return;
-#endif
+  rawHistory = loadHistoryFromRegKey();
+#else
 
   const char* stateDir = os::getvncstatedir();
   if (stateDir == nullptr)
@@ -372,10 +398,19 @@ void ServerDialog::loadServerHistory()
     if (len == 0)
       continue;
 
-    serverHistory.push_back(line);
+    rawHistory.push_back(line);
   }
 
   fclose(f);
+#endif
+
+  // Filter out duplicates, even if they have different formats
+  for (const string& entry : rawHistory) {
+    if (std::find_if(serverHistory.begin(), serverHistory.end(),
+                     [&entry](const string& s) { return same_server(s, entry); }) != serverHistory.end())
+      continue;
+    serverHistory.push_back(entry);
+  }
 }
 
 void ServerDialog::saveServerHistory()
@@ -400,8 +435,12 @@ void ServerDialog::saveServerHistory()
   }
 
   // Save the last X elements to the config file.
-  for(size_t idx=0; idx < serverHistory.size() && idx <= SERVER_HISTORY_SIZE; idx++)
-    fprintf(f, "%s\n", serverHistory[idx].c_str());
+  size_t count = 0;
+  for (const string& entry : serverHistory) {
+    if (++count > SERVER_HISTORY_SIZE)
+      break;
+    fprintf(f, "%s\n", entry.c_str());
+  }
 
   fclose(f);
 }
