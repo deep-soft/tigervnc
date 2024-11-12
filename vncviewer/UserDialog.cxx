@@ -36,6 +36,8 @@
 #include <FL/Fl_Return_Button.H>
 #include <FL/Fl_Pixmap.H>
 
+#include <rdr/Exception.h>
+
 #include <rfb/Exception.h>
 #include <rfb/obfuscate.h>
 
@@ -56,6 +58,9 @@ using namespace rfb;
 
 static Fl_Pixmap secure_icon(secure);
 static Fl_Pixmap insecure_icon(insecure);
+
+std::string UserDialog::savedUsername;
+std::string UserDialog::savedPassword;
 
 static long ret_val = 0;
 
@@ -115,7 +120,7 @@ void UserDialog::getUserPasswd(bool secure_, std::string* user,
 
     fp = fopen(passwordFileName, "rb");
     if (!fp)
-      throw rdr::PosixException(_("Opening password file failed"), errno);
+      throw rdr::posix_error(_("Opening password file failed"), errno);
 
     obfPwd.resize(fread(obfPwd.data(), 1, obfPwd.size(), fp));
     fclose(fp);
@@ -246,7 +251,7 @@ void UserDialog::getUserPasswd(bool secure_, std::string* user,
   delete win;
 
   if (ret_val != 0)
-    throw rfb::AuthCancelledException();
+    throw rfb::auth_cancelled();
 }
 
 bool UserDialog::showMsgBox(MsgBoxFlags flags, const char* title, const char* text)
