@@ -106,8 +106,8 @@ bool SMsgReader::readMsg()
     ret = readQEMUMessage();
     break;
   default:
-    vlog.error("unknown message type %d", currentMsgType);
-    throw protocol_error("unknown message type");
+    vlog.error("Unknown message type %d", currentMsgType);
+    throw protocol_error("Unknown message type");
   }
 
   if (ret)
@@ -272,11 +272,32 @@ bool SMsgReader::readKeyEvent()
 
 bool SMsgReader::readPointerEvent()
 {
+  int mask;
+  int x;
+  int y;
+
   if (!is->hasData(1 + 2 + 2))
     return false;
-  int mask = is->readU8();
-  int x = is->readU16();
-  int y = is->readU16();
+
+  is->setRestorePoint();
+
+  mask = is->readU8();
+  x = is->readU16();
+  y = is->readU16();
+
+  if (handler->client.supportsExtendedMouseButtons() && mask & 0x80 ) {
+    int highBits;
+    int lowBits;
+
+    if (!is->hasDataOrRestore(1))
+      return false;
+
+    highBits = is->readU8();
+    lowBits = mask & 0x7f; /* Clear marker bit */
+    mask = (highBits << 7) | lowBits;
+  }
+
+  is->clearRestorePoint();
   handler->pointerEvent(Point(x, y), mask);
   return true;
 }
@@ -464,7 +485,7 @@ bool SMsgReader::readQEMUMessage()
     ret = readQEMUKeyEvent();
     break;
   default:
-    throw protocol_error(format("unknown QEMU submessage type %d", subType));
+    throw protocol_error(format("Unknown QEMU submessage type %d", subType));
   }
 
   if (!ret) {

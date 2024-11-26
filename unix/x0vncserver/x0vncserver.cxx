@@ -76,7 +76,7 @@ BoolParameter localhostOnly("localhost",
                             "Only allow connections from localhost",
                             false);
 StringParameter interface("interface",
-                          "listen on the specified network address",
+                          "Listen on the specified network address",
                           "all");
 
 static const char* defaultDesktopName()
@@ -169,7 +169,7 @@ public:
   bool verifyConnection(Socket* s) override
   {
     if (!reloadRules()) {
-      vlog.error("Could not read IP filtering rules: rejecting all clients");
+      vlog.error("Could not read IP filtering rules, rejecting all clients");
       filter.clear();
       filter.push_back(parsePattern("-"));
       return false;
@@ -251,7 +251,7 @@ char* programName;
 
 static void printVersion(FILE *fp)
 {
-  fprintf(fp, "TigerVNC Server version %s, built %s\n",
+  fprintf(fp, "TigerVNC server version %s, built %s\n",
           PACKAGE_VERSION, buildtime);
 }
 
@@ -310,7 +310,7 @@ int main(int argc, char** argv)
 
   if (!(dpy = XOpenDisplay(displayname))) {
     // FIXME: Why not vlog.error(...)?
-    fprintf(stderr,"%s: unable to open display \"%s\"\r\n",
+    fprintf(stderr,"%s: Unable to open display \"%s\"\r\n",
             programName, XDisplayName(displayname));
     exit(1);
   }

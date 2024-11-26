@@ -82,7 +82,7 @@ VNCSConnectionST::~VNCSConnectionST()
 {
   // If we reach here then VNCServerST is deleting us!
   if (!closeReason.empty())
-    vlog.info("closing %s: %s", peerEndpoint.c_str(),
+    vlog.info("Closing %s: %s", peerEndpoint.c_str(),
               closeReason.c_str());
 
   // Release any keys the client still had pressed
@@ -122,7 +122,7 @@ void VNCSConnectionST::close(const char* reason)
   if (closeReason.empty())
     closeReason = reason;
   else
-    vlog.debug("second close: %s (%s)", peerEndpoint.c_str(), reason);
+    vlog.debug("Second close: %s (%s)", peerEndpoint.c_str(), reason);
 
   try {
     if (sock->outStream().hasBufferedData()) {
@@ -476,7 +476,7 @@ void VNCSConnectionST::setPixelFormat(const PixelFormat& pf)
   setCursor();
 }
 
-void VNCSConnectionST::pointerEvent(const Point& pos, uint8_t buttonMask)
+void VNCSConnectionST::pointerEvent(const Point& pos, uint16_t buttonMask)
 {
   if (rfb::Server::idleTimeout)
     idleTimer.start(secsToMillis(rfb::Server::idleTimeout));

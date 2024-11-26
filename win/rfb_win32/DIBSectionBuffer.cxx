@@ -58,7 +58,7 @@ void DIBSectionBuffer::initBuffer(const PixelFormat& pf, int w, int h) {
   uint8_t* new_data = nullptr;
 
   if (!pf.trueColour)
-    throw std::invalid_argument("palette format not supported");
+    throw std::invalid_argument("Palette format not supported");
 
   format = pf;
 
@@ -87,16 +87,16 @@ void DIBSectionBuffer::initBuffer(const PixelFormat& pf, int w, int h) {
 
     if (!new_bitmap) {
       int err = GetLastError();
-      throw rdr::win32_error("unable to create DIB section", err);
+      throw rdr::win32_error("Unable to create DIB section", err);
     }
 
     vlog.debug("recreateBuffer()");
   } else {
-    vlog.debug("one of area or format not set");
+    vlog.debug("One of area or format not set");
   }
 
   if (new_bitmap && bitmap) {
-    vlog.debug("preserving bitmap contents");
+    vlog.debug("Preserving bitmap contents");
 
     // Copy the contents across
     if (device) {
@@ -139,7 +139,7 @@ void DIBSectionBuffer::initBuffer(const PixelFormat& pf, int w, int h) {
     if (bytesPerRow % 4) {
       bytesPerRow += 4 - (bytesPerRow % 4);
       new_stride = (bytesPerRow * 8) / format.bpp;
-      vlog.info("adjusting DIB stride: %d to %d", w, new_stride);
+      vlog.info("Adjusting DIB stride: %d to %d", w, new_stride);
     }
 
     setBuffer(w, h, new_data, new_stride);

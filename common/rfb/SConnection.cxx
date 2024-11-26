@@ -95,14 +95,14 @@ bool SConnection::processMsg()
   case RFBSTATE_INITIALISATION:   return processInitMsg();         break;
   case RFBSTATE_NORMAL:           return reader_->readMsg();       break;
   case RFBSTATE_QUERYING:
-    throw std::logic_error("SConnection::processMsg: bogus data from "
+    throw std::logic_error("SConnection::processMsg: Bogus data from "
                            "client while querying");
   case RFBSTATE_CLOSING:
-    throw std::logic_error("SConnection::processMsg: called while closing");
+    throw std::logic_error("SConnection::processMsg: Called while closing");
   case RFBSTATE_UNINITIALISED:
-    throw std::logic_error("SConnection::processMsg: not initialised yet?");
+    throw std::logic_error("SConnection::processMsg: Not initialised yet?");
   default:
-    throw std::logic_error("SConnection::processMsg: invalid state");
+    throw std::logic_error("SConnection::processMsg: Invalid state");
   }
 }
 
@@ -112,7 +112,7 @@ bool SConnection::processVersionMsg()
   int majorVersion;
   int minorVersion;
 
-  vlog.debug("reading protocol version");
+  vlog.debug("Reading protocol version");
 
   if (!is->hasData(12))
     return false;
@@ -123,7 +123,7 @@ bool SConnection::processVersionMsg()
   if (sscanf(verStr, "RFB %03d.%03d\n",
              &majorVersion, &minorVersion) != 2) {
     state_ = RFBSTATE_INVALID;
-    throw protocol_error("reading version failed: not an RFB client?");
+    throw protocol_error("Reading version failed, not an RFB client?");
   }
 
   client.setVersion(majorVersion, minorVersion);
@@ -195,7 +195,7 @@ bool SConnection::processVersionMsg()
 
 bool SConnection::processSecurityTypeMsg()
 {
-  vlog.debug("processing security type message");
+  vlog.debug("Processing security type message");
 
   if (!is->hasData(1))
     return false;
@@ -230,7 +230,7 @@ void SConnection::processSecurityType(int secType)
 
 bool SConnection::processSecurityMsg()
 {
-  vlog.debug("processing security message");
+  vlog.debug("Processing security message");
   try {
     if (!ssecurity->processMsg())
       return false;
@@ -274,14 +274,14 @@ bool SConnection::processSecurityFailure()
 
 bool SConnection::processInitMsg()
 {
-  vlog.debug("reading client initialisation");
+  vlog.debug("Reading client initialisation");
   return reader_->readClientInit();
 }
 
 void SConnection::handleAuthFailureTimeout(Timer* /*t*/)
 {
   if (state_ != RFBSTATE_SECURITY_FAILURE) {
-    close("SConnection::handleAuthFailureTimeout: invalid state");
+    close("SConnection::handleAuthFailureTimeout: Invalid state");
     return;
   }
 
@@ -336,7 +336,7 @@ void SConnection::setAccessRights(AccessRights ar)
 bool SConnection::accessCheck(AccessRights ar) const
 {
   if (state_ < RFBSTATE_QUERYING)
-    throw std::logic_error("SConnection::accessCheck: invalid state");
+    throw std::logic_error("SConnection::accessCheck: Invalid state");
 
   return (accessRights & ar) == ar;
 }
@@ -433,6 +433,11 @@ void SConnection::supportsQEMUKeyEvent()
   writer()->writeQEMUKeyEvent();
 }
 
+void SConnection::supportsExtendedMouseButtons()
+{
+  writer()->writeExtendedMouseButtonsSupport();
+}
+
 void SConnection::versionReceived()
 {
 }
@@ -449,7 +454,7 @@ void SConnection::queryConnection(const char* /*userName*/)
 void SConnection::approveConnection(bool accept, const char* reason)
 {
   if (state_ != RFBSTATE_QUERYING)
-    throw std::logic_error("SConnection::approveConnection: invalid state");
+    throw std::logic_error("SConnection::approveConnection: Invalid state");
 
   if (!client.beforeVersion(3,8) || ssecurity->getType() != secTypeNone) {
     if (accept) {

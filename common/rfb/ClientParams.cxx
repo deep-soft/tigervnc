@@ -76,7 +76,7 @@ void ClientParams::setPF(const PixelFormat& pf)
   pf_ = pf;
 
   if (pf.bpp != 8 && pf.bpp != 16 && pf.bpp != 32)
-    throw std::invalid_argument("setPF: not 8, 16 or 32 bpp?");
+    throw std::invalid_argument("setPF: Not 8, 16 or 32 bpp?");
 }
 
 void ClientParams::setName(const char* name)
@@ -227,6 +227,13 @@ bool ClientParams::supportsFence() const
 bool ClientParams::supportsContinuousUpdates() const
 {
   if (supportsEncoding(pseudoEncodingContinuousUpdates))
+    return true;
+  return false;
+}
+
+bool ClientParams::supportsExtendedMouseButtons() const
+{
+  if (supportsEncoding(pseudoEncodingExtendedMouseButtons))
     return true;
   return false;
 }

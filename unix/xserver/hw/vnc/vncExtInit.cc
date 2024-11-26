@@ -89,7 +89,7 @@ rfb::BoolParameter localhostOnly("localhost",
                                  "Only allow connections from localhost",
                                  false);
 rfb::StringParameter interface("interface",
-                               "listen on the specified network address",
+                               "Listen on the specified network address",
                                "all");
 rfb::BoolParameter avoidShiftNumLock("AvoidShiftNumLock",
                                      "Avoid fake Shift presses for keys affected by NumLock.",
@@ -141,7 +141,7 @@ static PixelFormat vncGetPixelFormat(int scrIdx)
                      &redMask, &greenMask, &blueMask);
 
   if (!trueColour) {
-    vlog.error("pseudocolour not supported");
+    vlog.error("Pseudocolour not supported");
     abort();
   }
 
@@ -173,13 +173,13 @@ static void parseOverrideList(const char *text, ParamSet &out)
 void vncExtensionInit(void)
 {
   if (vncExtGeneration == vncGetServerGeneration()) {
-    vlog.error("vncExtensionInit: called twice in same generation?");
+    vlog.error("vncExtensionInit: Called twice in same generation?");
     return;
   }
   vncExtGeneration = vncGetServerGeneration();
 
   if (vncGetScreenCount() > MAXSCREENS)
-    vncFatalError("vncExtensionInit: too many screens\n");
+    vncFatalError("vncExtensionInit: Too many screens\n");
 
   vncAddExtension();
 
@@ -263,12 +263,12 @@ void vncExtensionInit(void)
                                           vncGetScreenHeight(),
                                           vncFbptr[scr],
                                           vncFbstride[scr]);
-        vlog.info("created VNC server for screen %d", scr);
+        vlog.info("Created VNC server for screen %d", scr);
 
         if (scr == 0 && vncInetdSock != -1 && listeners.empty()) {
           network::Socket* sock = new network::TcpSocket(vncInetdSock);
           desktop[scr]->addClient(sock, false, false);
-          vlog.info("added inetd sock");
+          vlog.info("Added inetd sock");
         }
       }
 

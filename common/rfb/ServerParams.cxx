@@ -34,7 +34,7 @@ ServerParams::ServerParams()
   : majorVersion(0), minorVersion(0),
     supportsQEMUKeyEvent(false),
     supportsSetDesktopSize(false), supportsFence(false),
-    supportsContinuousUpdates(false),
+    supportsContinuousUpdates(false), supportsExtendedMouseButtons(false),
     width_(0), height_(0),
     ledState_(ledUnknown)
 {
@@ -73,7 +73,7 @@ void ServerParams::setPF(const PixelFormat& pf)
   pf_ = pf;
 
   if (pf.bpp != 8 && pf.bpp != 16 && pf.bpp != 32)
-    throw std::invalid_argument("setPF: not 8, 16 or 32 bpp?");
+    throw std::invalid_argument("setPF: Not 8, 16 or 32 bpp?");
 }
 
 void ServerParams::setName(const char* name)

@@ -202,6 +202,10 @@ bool CMsgReader::readMsg()
       handler->supportsQEMUKeyEvent();
       ret = true;
       break;
+    case pseudoEncodingExtendedMouseButtons:
+      handler->supportsExtendedMouseButtons();
+      ret = true;
+      break;
     default:
       ret = readRect(dataRect, rectEncoding);
       break;
@@ -277,7 +281,7 @@ bool CMsgReader::readServerCutText()
 
   if (len > (size_t)maxCutText) {
     is->skip(len);
-    vlog.error("cut text too long (%d bytes) - ignoring",len);
+    vlog.error("Cut text too long (%d bytes) - ignoring",len);
     return true;
   }
 
@@ -477,7 +481,7 @@ bool CMsgReader::readRect(const Rect& r, int encoding)
   }
 
   if (r.is_empty())
-    vlog.error("zero size rect");
+    vlog.error("Zero size rect");
 
   return handler->dataRect(r, encoding);
 }
