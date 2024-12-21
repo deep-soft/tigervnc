@@ -264,6 +264,7 @@ jobs:
       - name: Checkout
         uses: deep-soft/checkout@v4
 
+      - name: Install dependencies
         run: |
           brew install fltk@1.3 pixman ffmpeg
           brew install gnutls nettle gmp
