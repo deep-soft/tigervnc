@@ -210,9 +210,10 @@ jobs:
       - name: Setup msys
         uses: msys2/setup-msys2@v2
 
-      # MSYS2 only packages FLTK 1.4 now:
-      # https://github.com/msys2/MINGW-packages/issues/22769
       - name: Install dependencies
+        # MSYS2 only packages FLTK 1.4 now:
+        # https://github.com/msys2/MINGW-packages/issues/22769
+        run: |
           pacman --sync --noconfirm --needed \
             make mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
           pacman --sync --noconfirm --needed \
