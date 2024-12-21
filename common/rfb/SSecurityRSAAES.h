@@ -24,10 +24,17 @@
 #endif
 
 #include <nettle/rsa.h>
+
 #include <rfb/SSecurity.h>
-#include <rdr/InStream.h>
-#include <rdr/OutStream.h>
+
 #include <rdr/RandomStream.h>
+
+namespace rdr {
+  class InStream;
+  class OutStream;
+  class AESInStream;
+  class AESOutStream;
+}
 
 namespace rfb {
 
@@ -84,8 +91,8 @@ namespace rfb {
     char password[256];
     AccessRights accessRights;
 
-    rdr::InStream* rais;
-    rdr::OutStream* raos;
+    rdr::AESInStream* rais;
+    rdr::AESOutStream* raos;
 
     rdr::InStream* rawis;
     rdr::OutStream* rawos;

@@ -28,9 +28,15 @@
 
 #include <rfb/CSecurity.h>
 #include <rfb/Security.h>
-#include <rdr/InStream.h>
-#include <rdr/OutStream.h>
+
 #include <gnutls/gnutls.h>
+
+namespace rdr {
+  class InStream;
+  class OutStream;
+  class TLSInStream;
+  class TLSOutStream;
+}
 
 namespace rfb {
   class CSecurityTLS : public CSecurity {
@@ -57,8 +63,8 @@ namespace rfb {
     gnutls_certificate_credentials_t cert_cred;
     bool anon;
 
-    rdr::InStream* tlsis;
-    rdr::OutStream* tlsos;
+    rdr::TLSInStream* tlsis;
+    rdr::TLSOutStream* tlsos;
 
     rdr::InStream* rawis;
     rdr::OutStream* rawos;

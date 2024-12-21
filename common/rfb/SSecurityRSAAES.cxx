@@ -74,6 +74,8 @@ BoolParameter SSecurityRSAAES::requireUsername
 ("RequireUsername", "Require username for the RSA-AES security types",
  false, ConfServer);
 
+static LogWriter vlog("SSecurityRSAAES");
+
 SSecurityRSAAES::SSecurityRSAAES(SConnection* sc_, uint32_t _secType,
                                  int _keySize, bool _isAllEncrypted)
   : SSecurity(sc_), state(SendPublicKey),
@@ -94,6 +96,19 @@ SSecurityRSAAES::~SSecurityRSAAES()
 
 void SSecurityRSAAES::cleanup()
 {
+  if (raos) {
+    try {
+      if (raos->hasBufferedData()) {
+        raos->cork(false);
+        raos->flush();
+        if (raos->hasBufferedData())
+          vlog.error("Failed to flush remaining socket data on close");
+      }
+    } catch (std::exception& e) {
+      vlog.error("Failed to flush remaining socket data on close: %s", e.what());
+    }
+  }
+
   if (serverKeyN)
     delete[] serverKeyN;
   if (serverKeyE)
@@ -540,9 +555,9 @@ void SSecurityRSAAES::writeSubtype()
 
 bool SSecurityRSAAES::readCredentials()
 {
-  rais->setRestorePoint();
   if (!rais->hasData(1))
     return false;
+  rais->setRestorePoint();
   uint8_t lenUsername = rais->readU8();
   if (!rais->hasDataOrRestore(lenUsername + 1))
     return false;
