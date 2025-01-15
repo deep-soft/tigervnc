@@ -63,7 +63,7 @@ public class VncViewer implements Runnable {
   public static final String aboutText =
     new String("TigerVNC Java viewer v%s (%s)%n"+
                "Built on %s at %s%n"+
-               "Copyright (C) 1999-2024 TigerVNC Team and many others (see README.rst)%n"+
+               "Copyright (C) 1999-2025 TigerVNC team and many others (see README.rst)%n"+
                "See https://www.tigervnc.org for information on TigerVNC.");
 
   public static String version = null;
@@ -212,6 +212,8 @@ public class VncViewer implements Runnable {
 
     // Check if the server name in reality is a configuration file
     potentiallyLoadConfigurationFile(vncServerName);
+
+    migrateDeprecatedOptions();
   }
 
   public static void usage() {
@@ -446,6 +448,15 @@ public class VncViewer implements Runnable {
           cc.close();
       }
       exit(1);
+    }
+  }
+
+  static void migrateDeprecatedOptions() {
+    if (dotWhenNoCursor.getValue()) {
+      vlog.info("DotWhenNoCursor is deprecated, set AlwaysCursor to 1 and CursorType to 'Dot' instead");
+
+      alwaysCursor.setParam(true);
+      cursorType.setParam("Dot");
     }
   }
 

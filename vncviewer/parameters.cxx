@@ -64,8 +64,15 @@ BoolParameter emulateMiddleButton("EmulateMiddleButton",
                                   "left and right mouse buttons simultaneously",
                                   false);
 BoolParameter dotWhenNoCursor("DotWhenNoCursor",
-                              "Show the dot cursor when the server sends an "
+                              "[DEPRECATED] Show the dot cursor when the server sends an "
                               "invisible cursor", false);
+BoolParameter alwaysCursor("AlwaysCursor",
+                           "Show the local cursor when the server sends an "
+                           "invisible cursor", false);
+StringParameter cursorType("CursorType",
+                           "Specify which cursor type the local cursor should be. "
+                           "Should be either Dot or System",
+                           "Dot");
 
 BoolParameter alertOnFatalError("AlertOnFatalError",
                                 "Give a dialog on connection problems rather "
@@ -201,7 +208,8 @@ static VoidParameter* parameterArray[] = {
   /* Input */
   &viewOnly,
   &emulateMiddleButton,
-  &dotWhenNoCursor,
+  &alwaysCursor,
+  &cursorType,
   &acceptClipboard,
   &sendClipboard,
 #if !defined(WIN32) && !defined(__APPLE__)
@@ -213,7 +221,8 @@ static VoidParameter* parameterArray[] = {
 };
 
 static VoidParameter* readOnlyParameterArray[] = {
-  &fullScreenAllMonitors
+  &fullScreenAllMonitors,
+  &dotWhenNoCursor
 };
 
 // Encoding Table
@@ -472,15 +481,25 @@ static void saveToReg(const char* servername) {
   }
 
   for (size_t i = 0; i < sizeof(parameterArray)/sizeof(VoidParameter*); i++) {
+    if (parameterArray[i]->isDefault()) {
+      try {
+        removeValue(parameterArray[i]->getName(), &hKey);
+      } catch (std::exception& e) {
+        RegCloseKey(hKey);
+        throw std::runtime_error(format(_("Failed to remove \"%s\": %s"),
+                                        parameterArray[i]->getName(),
+                                        e.what()));
+      }
+      continue;
+    }
+
     try {
-      if (dynamic_cast<StringParameter*>(parameterArray[i]) != nullptr) {
-        setKeyString(parameterArray[i]->getName(), *(StringParameter*)parameterArray[i], &hKey);
-      } else if (dynamic_cast<IntParameter*>(parameterArray[i]) != nullptr) {
+      if (dynamic_cast<IntParameter*>(parameterArray[i]) != nullptr) {
         setKeyInt(parameterArray[i]->getName(), (int)*(IntParameter*)parameterArray[i], &hKey);
       } else if (dynamic_cast<BoolParameter*>(parameterArray[i]) != nullptr) {
         setKeyInt(parameterArray[i]->getName(), (int)*(BoolParameter*)parameterArray[i], &hKey);
       } else {
-        throw std::logic_error(_("Unknown parameter type"));
+        setKeyString(parameterArray[i]->getName(), parameterArray[i]->getValueStr().c_str(), &hKey);
       }
     } catch (std::exception& e) {
       RegCloseKey(hKey);
@@ -563,17 +582,15 @@ static void getParametersFromReg(VoidParameter* parameters[],
 
   for (size_t i = 0; i < parameters_len/sizeof(VoidParameter*); i++) {
     try {
-      if (dynamic_cast<StringParameter*>(parameters[i]) != nullptr) {
-        if (getKeyString(parameters[i]->getName(), stringValue, buffersize, hKey))
-          parameters[i]->setParam(stringValue);
-      } else if (dynamic_cast<IntParameter*>(parameters[i]) != nullptr) {
+      if (dynamic_cast<IntParameter*>(parameters[i]) != nullptr) {
         if (getKeyInt(parameters[i]->getName(), &intValue, hKey))
           ((IntParameter*)parameters[i])->setParam(intValue);
       } else if (dynamic_cast<BoolParameter*>(parameters[i]) != nullptr) {
         if (getKeyInt(parameters[i]->getName(), &intValue, hKey))
           ((BoolParameter*)parameters[i])->setParam(intValue);
       } else {
-        throw std::logic_error(_("Unknown parameter type"));
+        if (getKeyString(parameters[i]->getName(), stringValue, buffersize, hKey))
+          parameters[i]->setParam(stringValue);
       }
     } catch(std::exception& e) {
       // Just ignore this entry and continue with the rest
@@ -667,25 +684,16 @@ void saveViewerParameters(const char *filename, const char *servername) {
   fprintf(f, "ServerName=%s\n", encodingBuffer);
 
   for (VoidParameter* param : parameterArray) {
-    if (dynamic_cast<StringParameter*>(param) != nullptr) {
-      if (!encodeValue(*(StringParameter*)param,
-          encodingBuffer, buffersize)) {
-        fclose(f);
-        throw std::runtime_error(format(_("Failed to save \"%s\": %s"),
-                                        param->getName(),
-                                        _("Could not encode parameter")));
-      }
-      fprintf(f, "%s=%s\n", ((StringParameter*)param)->getName(), encodingBuffer);
-    } else if (dynamic_cast<IntParameter*>(param) != nullptr) {
-      fprintf(f, "%s=%d\n", ((IntParameter*)param)->getName(), (int)*(IntParameter*)param);
-    } else if (dynamic_cast<BoolParameter*>(param) != nullptr) {
-      fprintf(f, "%s=%d\n", ((BoolParameter*)param)->getName(), (int)*(BoolParameter*)param);
-    } else {      
+    if (param->isDefault())
+      continue;
+    if (!encodeValue(param->getValueStr().c_str(),
+                     encodingBuffer, buffersize)) {
       fclose(f);
-      throw std::logic_error(format(_("Failed to save \"%s\": %s"),
-                                    param->getName(),
-                                    _("Unknown parameter type")));
+      throw std::runtime_error(format(_("Failed to save \"%s\": %s"),
+                                      param->getName(),
+                                      _("Could not encode parameter")));
     }
+    fprintf(f, "%s=%s\n", param->getName(), encodingBuffer);
   }
   fclose(f);
 }
@@ -699,29 +707,11 @@ static bool findAndSetViewerParameterFromValue(
 
   // Find and set the correct parameter
   for (size_t i = 0; i < parameters_len/sizeof(VoidParameter*); i++) {
-
-    if (dynamic_cast<StringParameter*>(parameters[i]) != nullptr) {
-      if (strcasecmp(line, ((StringParameter*)parameters[i])->getName()) == 0) {
-        if(!decodeValue(value, decodingBuffer, sizeof(decodingBuffer)))
-          throw std::runtime_error(_("Invalid format or too large value"));
-        ((StringParameter*)parameters[i])->setParam(decodingBuffer);
-        return false;
-      }
-
-    } else if (dynamic_cast<IntParameter*>(parameters[i]) != nullptr) {
-      if (strcasecmp(line, ((IntParameter*)parameters[i])->getName()) == 0) {
-        ((IntParameter*)parameters[i])->setParam(atoi(value));
-        return false;
-      }
-
-    } else if (dynamic_cast<BoolParameter*>(parameters[i]) != nullptr) {
-      if (strcasecmp(line, ((BoolParameter*)parameters[i])->getName()) == 0) {
-        ((BoolParameter*)parameters[i])->setParam(atoi(value));
-        return false;
-      }
-
-    } else {
-      throw std::logic_error(_("Unknown parameter type"));
+    if (strcasecmp(line, parameters[i]->getName()) == 0) {
+      if(!decodeValue(value, decodingBuffer, sizeof(decodingBuffer)))
+        throw std::runtime_error(_("Invalid format or too large value"));
+      parameters[i]->setParam(decodingBuffer);
+      return false;
     }
   }
 
@@ -780,10 +770,9 @@ char* loadViewerParameters(const char *filename) {
 
     if (strlen(line) == (sizeof(line) - 1)) {
       fclose(f);
-      throw std::runtime_error(format("%s: %s",
-                                      format(_("Failed to read line %d "
-                                               "in file \"%s\""),
-                                             lineNr, filepath).c_str(),
+      std::string msg = format(_("Failed to read line %d in "
+                                 "file \"%s\""), lineNr, filepath);
+      throw std::runtime_error(format("%s: %s", msg.c_str(),
                                       _("Line too long")));
     }
 
@@ -815,8 +804,9 @@ char* loadViewerParameters(const char *filename) {
     // Find the parameter value
     char *value = strchr(line, '=');
     if (value == nullptr) {
-      vlog.error(_("Failed to read line %d in file %s: %s"),
-                 lineNr, filepath, _("Invalid format"));
+      std::string msg = format(_("Failed to read line %d in "
+                                 "file \"%s\""), lineNr, filepath);
+      vlog.error("%s: %s", msg.c_str(), _("Invalid format"));
       continue;
     }
     *value = '\0'; // line only contains the parameter name below.
@@ -844,14 +834,17 @@ char* loadViewerParameters(const char *filename) {
       }
     } catch(std::exception& e) {
       // Just ignore this entry and continue with the rest
-      vlog.error(_("Failed to read line %d in file %s: %s"),
-                 lineNr, filepath, e.what());
+      std::string msg = format(_("Failed to read line %d in "
+                                 "file \"%s\""), lineNr, filepath);
+      vlog.error("%s: %s", msg.c_str(), e.what());
       continue;
     }
 
-    if (invalidParameterName)
-      vlog.error(_("Failed to read line %d in file %s: %s"),
-                 lineNr, filepath, _("Unknown parameter"));
+    if (invalidParameterName) {
+      std::string msg = format(_("Failed to read line %d in "
+                                 "file \"%s\""), lineNr, filepath);
+      vlog.error("%s: %s", msg.c_str(), _("Unknown parameter"));
+    }
   }
   fclose(f);
   f = nullptr;

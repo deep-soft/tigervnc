@@ -167,8 +167,15 @@ class Viewport extends JPanel implements ActionListener {
     for (i = 0; i < width*height; i++)
       if (data[i*4 + 3] != 0) break;
 
-    if ((i == width*height) && dotWhenNoCursor.getValue()) {
-      vlog.debug("Cursor is empty: Using dot");
+    useSystemCursor = false;
+    if ((i == width*height) && alwaysCursor.getValue()) {
+      String cursorTypeStr = cursorType.getValueStr();
+      if (cursorTypeStr.matches("^System$")) {
+        useSystemCursor = true;
+      } else {
+        vlog.debug("Cursor is empty: Using dot");
+      }
+      // Do this anyway to prevent cursor being null
       cursor = new BufferedImage(5, 5, BufferedImage.TYPE_INT_ARGB_PRE);
       cursor.setRGB(0, 0, 5, 5, dotcursor_xpm, 0, 5);
       cursorHotspot.x = cursorHotspot.y = 3;
@@ -200,8 +207,8 @@ class Viewport extends JPanel implements ActionListener {
       Graphics2D g2 = tmp.createGraphics();
       g2.drawImage(cursor, 0, 0, cw, ch, 0, 0, width, height, null);
       g2.dispose();
-      x = (int) Math.min(Math.floor((float) x * (float) cw / (float) width), cw - 1);
-      y = (int) Math.min(Math.floor((float) y * (float) ch / (float) height), ch - 1);
+      x = (int) Math.min(Math.floor((float) x * (float) cw / (float) width), Math.max(cw - 1, 0));
+      y = (int) Math.min(Math.floor((float) y * (float) ch / (float) height), Math.max(ch - 1, 0));
       cursor = tmp;
     }
 
@@ -216,7 +223,10 @@ class Viewport extends JPanel implements ActionListener {
 
     hotspot = new java.awt.Point(x, y);
     softCursor = tk.createCustomCursor(img, hotspot, name);
-    setCursor(softCursor);
+    if (useSystemCursor)
+      setCursor(java.awt.Cursor.getDefaultCursor());
+    else
+      setCursor(softCursor);
   }
 
   public void resize(int x, int y, int w, int h) {
@@ -830,6 +840,7 @@ class Viewport extends JPanel implements ActionListener {
   float scaleRatioX, scaleRatioY;
 
   static BufferedImage cursor;
+  static boolean useSystemCursor = false;
   Point cursorHotspot = new Point();
 
 }
