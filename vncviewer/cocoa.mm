@@ -1,4 +1,4 @@
-/* Copyright 2011 Pierre Ossman <ossman@cendio.se> for Cendio AB
+/* Copyright 2011-2025 Pierre Ossman <ossman@cendio.se> for Cendio AB
  * 
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,21 @@
 
 static bool captured = false;
 
+void cocoa_prevent_native_fullscreen(Fl_Window *win)
+{
+  NSWindow *nsw;
+  nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 100700
+  nsw.collectionBehavior |= NSWindowCollectionBehaviorFullScreenNone;
+#endif
+}
+
 int cocoa_get_level(Fl_Window *win)
 {
   NSWindow *nsw;
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
   return [nsw level];
 }
 
@@ -41,6 +52,7 @@ void cocoa_set_level(Fl_Window *win, int level)
 {
   NSWindow *nsw;
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
   [nsw setLevel:level];
 }
 
@@ -49,6 +61,7 @@ int cocoa_capture_displays(Fl_Window *win)
   NSWindow *nsw;
 
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
 
   CGDisplayCount count;
   CGDirectDisplayID displays[16];
@@ -106,6 +119,7 @@ void cocoa_release_displays(Fl_Window *win)
   captured = false;
 
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
 
   // Someone else has already changed the level of this window
   if ([nsw level] != CGShieldingWindowLevel())
@@ -130,6 +144,7 @@ CGColorSpaceRef cocoa_win_color_space(Fl_Window *win)
   NSColorSpace *nscs;
 
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
 
   nscs = [nsw colorSpace];
   if (nscs == nil) {
@@ -150,6 +165,7 @@ bool cocoa_win_is_zoomed(Fl_Window *win)
 {
   NSWindow *nsw;
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
   return [nsw isZoomed];
 }
 
@@ -157,5 +173,6 @@ void cocoa_win_zoom(Fl_Window *win)
 {
   NSWindow *nsw;
   nsw = (NSWindow*)fl_xid(win);
+  assert(nsw);
   [nsw zoom:nsw];
 }
