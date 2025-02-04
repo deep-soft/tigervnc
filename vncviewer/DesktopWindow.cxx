@@ -174,7 +174,7 @@ DesktopWindow::DesktopWindow(int w, int h, const char *name,
 #ifdef __APPLE__
   // On OS X we can do the maximize thing properly before the
   // window is showned. Other platforms handled further down...
-  if (maximize) {
+  if (::maximize) {
     int dummy;
     Fl::screen_work_area(dummy, dummy, w, h, geom_x, geom_y);
   }
@@ -213,7 +213,7 @@ DesktopWindow::DesktopWindow(int w, int h, const char *name,
   // maximized property on Windows and X11 before showing the window.
   // See STR #2083 and STR #2178
 #ifndef __APPLE__
-  if (maximize) {
+  if (::maximize) {
     maximizeWindow();
   }
 #endif
@@ -292,9 +292,42 @@ const rfb::PixelFormat &DesktopWindow::getPreferredPF()
 
 void DesktopWindow::setName(const char *name)
 {
-  char windowNameStr[256];
+  char windowNameStr[100];
+  const char *labelFormat;
+  size_t maxNameSize;
+  char truncatedName[sizeof(windowNameStr)];
 
-  snprintf(windowNameStr, 256, "%.240s - TigerVNC", name);
+  labelFormat = "%s - TigerVNC";
+
+  // Ignore the length of '%s' since it is
+  // a format marker which won't take up space
+  maxNameSize = sizeof(windowNameStr) - 1 - strlen(labelFormat) + 2;
+
+  if (maxNameSize > strlen(name)) {
+    // Guaranteed to fit, no need to truncate
+    strcpy(truncatedName, name);
+  } else if (maxNameSize <= strlen("...")) {
+    // Even an ellipsis won't fit
+    truncatedName[0] = '\0';
+  } else {
+    int offset;
+
+    // We need to truncate, add an ellipsis
+    offset = maxNameSize - strlen("...");
+    strncpy(truncatedName, name, sizeof(truncatedName));
+    strcpy(truncatedName + offset, "...");
+  }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
+  if (snprintf(windowNameStr, sizeof(windowNameStr), "%s - TigerVNC",
+               truncatedName) >= (int)sizeof(windowNameStr)) {
+    // This is just to shut up the compiler, as we've already made sure
+    // we won't truncate anything
+  }
+
+#pragma GCC diagnostic pop
 
   copy_label(windowNameStr);
 }
