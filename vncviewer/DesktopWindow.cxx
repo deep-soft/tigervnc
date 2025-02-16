@@ -83,7 +83,8 @@ DesktopWindow::DesktopWindow(int w, int h, const char *name,
                              CConn* cc_)
   : Fl_Window(w, h), cc(cc_), offscreen(nullptr), overlay(nullptr),
     firstUpdate(true),
-    delayedFullscreen(false), delayedDesktopSize(false),
+    delayedFullscreen(false), sentDesktopSize(false),
+    pendingRemoteResize(false), lastResize({0, 0}),
     keyboardGrabbed(false), mouseGrabbed(false),
     statsLastUpdates(0), statsLastPixels(0), statsLastPosition(0),
     statsGraph(nullptr)
@@ -221,14 +222,6 @@ DesktopWindow::DesktopWindow(int w, int h, const char *name,
   // Adjust layout now that we're visible and know our final size
   repositionWidgets();
 
-  if (delayedFullscreen) {
-    // Hack: Fullscreen requests may be ignored, so we need a timeout for
-    // when we should stop waiting. We also really need to wait for the
-    // resize, which can come after the fullscreen event.
-    Fl::add_timeout(0.5, handleFullscreenTimeout, this);
-    fullscreen_on();
-  }
-
   // Throughput graph for debugging
   if (vlog.getLevel() >= LogWriter::LEVEL_DEBUG) {
     memset(&stats, 0, sizeof(stats));
@@ -321,7 +314,7 @@ void DesktopWindow::setName(const char *name)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 
-  if (snprintf(windowNameStr, sizeof(windowNameStr), "%s - TigerVNC",
+  if (snprintf(windowNameStr, sizeof(windowNameStr), labelFormat,
                truncatedName) >= (int)sizeof(windowNameStr)) {
     // This is just to shut up the compiler, as we've already made sure
     // we won't truncate anything
@@ -339,15 +332,8 @@ void DesktopWindow::setName(const char *name)
 void DesktopWindow::updateWindow()
 {
   if (firstUpdate) {
-    if (cc->server.supportsSetDesktopSize) {
-      // Hack: Wait until we're in the proper mode and position until
-      // resizing things, otherwise we might send the wrong thing.
-      if (delayedFullscreen)
-        delayedDesktopSize = true;
-      else
-        handleDesktopSize();
-    }
     firstUpdate = false;
+    remoteResize();
   }
 
   viewport->updateWindow();
@@ -407,6 +393,19 @@ void DesktopWindow::resizeFramebuffer(int new_w, int new_h)
   viewport->size(new_w, new_h);
 
   repositionWidgets();
+}
+
+
+void DesktopWindow::setDesktopSizeDone(unsigned result)
+{
+  pendingRemoteResize = false;
+
+  if (result != 0)
+    return;
+
+  // We might have resized again whilst waiting for the previous
+  // request, so check if we are in sync
+  remoteResize();
 }
 
 
@@ -697,21 +696,7 @@ void DesktopWindow::resize(int x, int y, int w, int h)
   Fl_Window::resize(x, y, w, h);
 
   if (resizing) {
-    // Try to get the remote size to match our window size, provided
-    // the following conditions are true:
-    //
-    // a) The user has this feature turned on
-    // b) The server supports it
-    // c) We're not still waiting for a chance to handle DesktopSize
-    // d) We're not still waiting for startup fullscreen to kick in
-    //
-    if (not firstUpdate and not delayedFullscreen and
-        ::remoteResize and cc->server.supportsSetDesktopSize) {
-      // We delay updating the remote desktop as we tend to get a flood
-      // of resize events as the user is dragging the window.
-      Fl::remove_timeout(handleResizeTimeout, this);
-      Fl::add_timeout(0.5, handleResizeTimeout, this);
-    }
+    remoteResize();
 
     repositionWidgets();
   }
@@ -871,6 +856,14 @@ int DesktopWindow::handle(int event)
     else
       ungrabKeyboard();
 
+    // The window manager respected our full screen request, so stop
+    // waiting and delaying the session resize
+    if (delayedFullscreen && fullscreen_active()) {
+      Fl::remove_timeout(handleFullscreenTimeout, this);
+      delayedFullscreen = false;
+      remoteResize();
+    }
+
     break;
 
   case FL_ENTER:
@@ -951,6 +944,19 @@ int DesktopWindow::fltkDispatch(int event, Fl_Window *win)
     case FL_UNFOCUS:
       if (fullscreenSystemKeys) {
         dw->ungrabKeyboard();
+      }
+      break;
+
+    case FL_SHOW:
+      // In this particular place, FL_SHOW means an actual MapNotify,
+      // which means we can continue enabling initial fullscreen.
+      if (dw->delayedFullscreen) {
+        // Hack: Fullscreen requests may be ignored, so we need a
+        // timeout for when we should stop waiting. We also really need
+        // to wait for the resize, which can come after the fullscreen
+        // event.
+        Fl::add_timeout(0.5, handleFullscreenTimeout, dw);
+        dw->fullscreen_on();
       }
       break;
 
@@ -1064,14 +1070,17 @@ void DesktopWindow::fullscreen_on()
   }
 #ifdef __APPLE__
   // This is a workaround for a bug in FLTK, see: https://github.com/fltk/fltk/pull/277
-  int savedLevel;
-  savedLevel = cocoa_get_level(this);
+  int savedLevel = -1;
+  if (shown())
+    savedLevel = cocoa_get_level(this);
 #endif
   fullscreen_screens(top, bottom, left, right);
 #ifdef __APPLE__
   // This is a workaround for a bug in FLTK, see: https://github.com/fltk/fltk/pull/277
-  if (cocoa_get_level(this) != savedLevel)
-    cocoa_set_level(this, savedLevel);
+  if (savedLevel != -1) {
+    if (cocoa_get_level(this) != savedLevel)
+      cocoa_set_level(this, savedLevel);
+  }
 #endif
 
   if (!fullscreen_active())
@@ -1290,32 +1299,13 @@ void DesktopWindow::maximizeWindow()
 }
 
 
-void DesktopWindow::handleDesktopSize()
-{
-  if (strcmp(desktopSize, "") != 0) {
-    int width, height;
-
-    // An explicit size has been requested
-
-    if (sscanf(desktopSize, "%dx%d", &width, &height) != 2)
-      return;
-
-    remoteResize(width, height);
-  } else if (::remoteResize) {
-    // No explicit size, but remote resizing is on so make sure it
-    // matches whatever size the window ended up being
-    remoteResize(w(), h());
-  }
-}
-
-
 void DesktopWindow::handleResizeTimeout(void *data)
 {
   DesktopWindow *self = (DesktopWindow *)data;
 
   assert(self);
 
-  self->remoteResize(self->w(), self->h());
+  self->remoteResize();
 }
 
 
@@ -1330,10 +1320,47 @@ void DesktopWindow::reconfigureFullscreen(void* /*data*/)
 }
 
 
-void DesktopWindow::remoteResize(int width, int height)
+void DesktopWindow::remoteResize()
 {
+  int width, height;
   ScreenSet layout;
   ScreenSet::const_iterator iter;
+
+  if (viewOnly)
+    return;
+
+  if (!::remoteResize)
+    return;
+  if (!cc->server.supportsSetDesktopSize)
+    return;
+
+  // Don't pester the server with a resize until we have our final size
+  if (delayedFullscreen)
+    return;
+
+  // Rate limit to one pending resize at a time
+  if (pendingRemoteResize)
+    return;
+
+  // And no more than once every 100ms
+  if (msSince(&lastResize) < 100) {
+    Fl::remove_timeout(handleResizeTimeout, this);
+    Fl::add_timeout((100.0 - msSince(&lastResize)) / 1000.0,
+                    handleResizeTimeout, this);
+    return;
+  }
+
+  width = w();
+  height = h();
+
+  if (!sentDesktopSize && (strcmp(desktopSize, "") != 0)) {
+    // An explicit size has been requested
+
+    if (sscanf(desktopSize, "%dx%d", &width, &height) != 2)
+      return;
+
+    sentDesktopSize = true;
+  }
 
   if (!fullscreen_active() || (width > w()) || (height > h())) {
     // In windowed mode (or the framebuffer is so large that we need
@@ -1453,6 +1480,8 @@ void DesktopWindow::remoteResize(int width, int height)
     vlog.debug("%s", buffer);
   }
 
+  pendingRemoteResize = true;
+  gettimeofday(&lastResize, nullptr);
   cc->writer()->writeSetDesktopSize(width, height, layout);
 }
 
@@ -1573,11 +1602,7 @@ void DesktopWindow::handleFullscreenTimeout(void *data)
   assert(self);
 
   self->delayedFullscreen = false;
-
-  if (self->delayedDesktopSize) {
-    self->handleDesktopSize();
-    self->delayedDesktopSize = false;
-  }
+  self->remoteResize();
 }
 
 void DesktopWindow::scrollTo(int x, int y)

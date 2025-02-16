@@ -65,8 +65,16 @@ std::string UserDialog::savedPassword;
 static long ret_val = 0;
 
 static void button_cb(Fl_Widget *widget, long val) {
+  Fl_Window* win;
+
   ret_val = val;
-  widget->window()->hide();
+
+  assert(widget != nullptr);
+  win = dynamic_cast<Fl_Window*>(widget);
+  if (win == nullptr)
+    win = widget->window();
+  assert(win != nullptr);
+  win->hide();
 }
 
 UserDialog::UserDialog()
@@ -141,7 +149,7 @@ void UserDialog::getUserPasswd(bool secure_, std::string* user,
   int x, y;
 
   win = new Fl_Window(410, 0, _("VNC authentication"));
-  win->callback(button_cb, 0);
+  win->callback(button_cb, 1);
 
   banner = new Fl_Box(0, 0, win->w(), 20);
   banner->align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE|FL_ALIGN_IMAGE_NEXT_TO_TEXT);

@@ -228,6 +228,11 @@ void Viewport::setCursor(int width, int height, const Point& hotspot,
 
 void Viewport::showCursor()
 {
+  if (viewOnly) {
+    window()->cursor(FL_CURSOR_DEFAULT);
+    return;
+  }
+
   if (cursorIsBlank && alwaysCursor && !strcasecmp("system", cursorType)) {
     window()->cursor(FL_CURSOR_DEFAULT);
   } else {
@@ -237,11 +242,17 @@ void Viewport::showCursor()
 
 void Viewport::handleClipboardRequest()
 {
+  if (viewOnly)
+    return;
+
   Fl::paste(*this, clipboardSource);
 }
 
 void Viewport::handleClipboardAnnounce(bool available)
 {
+  if (viewOnly)
+    return;
+
   if (!acceptClipboard)
     return;
 
@@ -296,6 +307,9 @@ void Viewport::setLEDState(unsigned int ledState)
     return;
   }
 
+  if (viewOnly)
+    return;
+
   if (!hasFocus())
     return;
 
@@ -305,6 +319,9 @@ void Viewport::setLEDState(unsigned int ledState)
 void Viewport::pushLEDState()
 {
   unsigned int ledState;
+
+  if (viewOnly)
+    return;
 
   // Server support?
   if (cc->server.ledState() == ledUnknown)
@@ -532,6 +549,9 @@ void Viewport::handleClipboardChange(int source, void *data)
   Viewport *self = (Viewport *)data;
 
   assert(self);
+
+  if (viewOnly)
+    return;
 
   if (!sendClipboard)
     return;
@@ -771,7 +791,7 @@ void Viewport::popupContextMenu()
   handle(FL_FOCUS);
 
   // Back to our proper mouse pointer.
-  if (Fl::belowmouse())
+  if (Fl::belowmouse() == this)
     showCursor();
 
   if (m == nullptr)
@@ -859,5 +879,6 @@ void Viewport::handleOptions(void *data)
   Viewport *self = (Viewport*)data;
 
   self->setMenuKey();
-  // FIXME: Need to recheck cursor for dotWhenNoCursor
+  if (Fl::belowmouse() == self)
+    self->showCursor();
 }
