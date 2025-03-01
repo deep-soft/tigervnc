@@ -20,31 +20,18 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <string.h>
+#include <gtest/gtest.h>
 
-#include <rfb/Configuration.h>
+#include <core/Configuration.h>
 
-static rfb::BoolParameter boolparam("boolparam", "", false);
-static rfb::IntParameter intparam("intparam", "", 0);
-static rfb::StringParameter strparam("strparam", "", "");
+static core::BoolParameter boolparam("boolparam", "", false);
+static core::IntParameter intparam("intparam", "", 0);
+static core::StringParameter strparam("strparam", "", "");
 
-#define ASSERT_EQ_I(expr, val) if ((expr) != (val)) { \
-  printf("FAILED on line %d (%s equals %d, expected %d)\n", __LINE__, #expr, (int)(expr), (int)(val)); \
-  return; \
-}
-
-#define ASSERT_EQ_S(expr, val) if (strcmp((expr), (val)) != 0) { \
-  printf("FAILED on line %d (%s equals %s, expected %s)\n", __LINE__, #expr, (const char*)(expr), (const char*)(val)); \
-  return; \
-}
-
-static void test_args()
+TEST(ConfigArgs, args)
 {
   int ret;
   std::vector<const char*> argv;
-
-  printf("%s: ", __func__);
 
   boolparam.setParam(true);
   intparam.setParam(1);
@@ -52,40 +39,36 @@ static void test_args()
 
   // Just program name
   argv = {"prog" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 0);
-  ASSERT_EQ_I(ret, 0);
-  ASSERT_EQ_I(boolparam, true);
-  ASSERT_EQ_I(intparam, 1);
-  ASSERT_EQ_S(strparam, "test");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 0);
+  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(boolparam, true);
+  EXPECT_EQ(intparam, 1);
+  EXPECT_STREQ(strparam, "test");
 
   // A bunch of standard arguments
   argv = {"prog", "arg1", "arg2", "arg3" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 2);
-  ASSERT_EQ_I(ret, 0);
-  ASSERT_EQ_I(boolparam, true);
-  ASSERT_EQ_I(intparam, 1);
-  ASSERT_EQ_S(strparam, "test");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 2);
+  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(boolparam, true);
+  EXPECT_EQ(intparam, 1);
+  EXPECT_STREQ(strparam, "test");
 
   // A parameter without any dash
   argv = {"prog", "strparam", "intparam" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
-  ASSERT_EQ_I(boolparam, true);
-  ASSERT_EQ_I(intparam, 1);
-  ASSERT_EQ_S(strparam, "test");
-
-  printf("OK\n");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(boolparam, true);
+  EXPECT_EQ(intparam, 1);
+  EXPECT_STREQ(strparam, "test");
 }
 
-static void test_none()
+TEST(ConfigArgs, noDash)
 {
   int ret;
   std::vector<const char*> argv;
-
-  printf("%s: ", __func__);
 
   boolparam.setParam(true);
   intparam.setParam(1);
@@ -93,40 +76,36 @@ static void test_none()
 
   // int argument
   argv = {"prog", "intparam=12", "34"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(intparam, 12);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(intparam, 12);
 
   // string argument
   argv = {"prog", "strparam=foo", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_S(strparam, "foo");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_STREQ(strparam, "foo");
 
   // empty string argument
   argv = {"prog", "strparam=", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_S(strparam, "");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_STREQ(strparam, "");
 
   // Bad parameter
   argv = {"prog", "fooparam=123"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
-
-  printf("OK\n");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
 }
 
-static void test_single()
+TEST(ConfigArgs, singleDash)
 {
   int ret;
   std::vector<const char*> argv;
-
-  printf("%s: ", __func__);
 
   boolparam.setParam(true);
   intparam.setParam(1);
@@ -134,68 +113,64 @@ static void test_single()
 
   // int argument
   argv = {"prog", "-intparam", "12", "34"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 2);
-  ASSERT_EQ_I(intparam, 12);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 2);
+  EXPECT_EQ(intparam, 12);
 
   // int argument with equals
   argv = {"prog", "-intparam=12", "34"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(intparam, 12);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(intparam, 12);
 
   // string argument
   argv = {"prog", "-strparam", "foo", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 2);
-  ASSERT_EQ_S(strparam, "foo");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 2);
+  EXPECT_STREQ(strparam, "foo");
 
   // string argument with equals
   argv = {"prog", "-strparam=foo", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_S(strparam, "foo");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_STREQ(strparam, "foo");
 
   // empty string argument with equals
   argv = {"prog", "-strparam=", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_S(strparam, "");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_STREQ(strparam, "");
 
   // Missing argument
   intparam.setParam(1);
   argv = {"prog", "-intparam"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
-  ASSERT_EQ_I(intparam, 1);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(intparam, 1);
 
   // Bad parameter
   argv = {"prog", "-fooparam", "123"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
 
   // Bad parameter with equals
   argv = {"prog", "-fooparam=123"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
-
-  printf("OK\n");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
 }
 
-static void test_double()
+TEST(ConfigArgs, doubleDash)
 {
   int ret;
   std::vector<const char*> argv;
-
-  printf("%s: ", __func__);
 
   boolparam.setParam(true);
   intparam.setParam(1);
@@ -203,161 +178,148 @@ static void test_double()
 
   // int argument
   argv = {"prog", "--intparam", "12", "34"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 2);
-  ASSERT_EQ_I(intparam, 12);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 2);
+  EXPECT_EQ(intparam, 12);
 
   // int argument with equals
   argv = {"prog", "--intparam=12", "34"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(intparam, 12);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(intparam, 12);
 
   // string argument
   argv = {"prog", "--strparam", "foo", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 2);
-  ASSERT_EQ_S(strparam, "foo");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 2);
+  EXPECT_STREQ(strparam, "foo");
 
   // string argument with equals
   argv = {"prog", "--strparam=foo", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_S(strparam, "foo");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_STREQ(strparam, "foo");
 
   // empty string argument with equals
   argv = {"prog", "--strparam=", "bar" };
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_S(strparam, "");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_STREQ(strparam, "");
 
   // Missing argument
   intparam.setParam(1);
   argv = {"prog", "--intparam"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
-  ASSERT_EQ_I(intparam, 1);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(intparam, 1);
 
   // Bad parameter
   argv = {"prog", "--fooparam", "123"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
 
   // Bad parameter with equals
   argv = {"prog", "--fooparam=123"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 0);
-
-  printf("OK\n");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 0);
 }
 
-static void test_bool()
+TEST(ConfigArgs, bool)
 {
   int ret;
   std::vector<const char*> argv;
 
-  printf("%s: ", __func__);
-
   // solo bool (single)
   boolparam.setParam(false);
   argv = {"prog", "-boolparam"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, true);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, true);
 
   // solo bool (double)
   boolparam.setParam(false);
   argv = {"prog", "--boolparam"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, true);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, true);
 
   // bool argument (single)
   boolparam.setParam(true);
   argv = {"prog", "-boolparam", "off", "on"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 2);
-  ASSERT_EQ_I(boolparam, false);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 2);
+  EXPECT_EQ(boolparam, false);
 
   // bool argument (double)
   boolparam.setParam(true);
   argv = {"prog", "--boolparam", "off", "on"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 2);
-  ASSERT_EQ_I(boolparam, false);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 2);
+  EXPECT_EQ(boolparam, false);
 
   // bool argument equals (single)
   boolparam.setParam(true);
   argv = {"prog", "-boolparam=off", "on"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, false);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, false);
 
   // bool argument equals (double)
   boolparam.setParam(true);
   argv = {"prog", "--boolparam=off", "on"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, false);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, false);
 
   // empty bool argument equals (single)
   boolparam.setParam(true);
   argv = {"prog", "-boolparam=", "on"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, true);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, true);
 
   // empty bool argument equals (double)
   boolparam.setParam(true);
   argv = {"prog", "--boolparam=", "on"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, true);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, true);
 
   // bool bad argument (single)
   boolparam.setParam(false);
   argv = {"prog", "-boolparam", "foo", "off"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, true);
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, true);
 
   // bool bad argument (double)
   boolparam.setParam(false);
   argv = {"prog", "--boolparam", "foo", "off"};
-  ret = rfb::Configuration::handleParamArg(argv.size(),
-                                           (char**)argv.data(), 1);
-  ASSERT_EQ_I(ret, 1);
-  ASSERT_EQ_I(boolparam, true);
-
-  printf("OK\n");
+  ret = core::Configuration::handleParamArg(argv.size(),
+                                            (char**)argv.data(), 1);
+  EXPECT_EQ(ret, 1);
+  EXPECT_EQ(boolparam, true);
 }
 
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char** argv)
 {
-  printf("Configuration argument handling test\n");
-
-  test_args();
-  test_none();
-  test_single();
-  test_double();
-  test_bool();
-
-  return 0;
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

@@ -1,4 +1,5 @@
 /* Copyright 2020 Alex Tanskanen <aleta@cendio.se> for Cendio AB
+ * Copyright 2025 Pierre Ossman <ossman@cendio.se> for Cendio AB
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +21,15 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <vector>
 #include <unistd.h>
 
-#include <rfb/Rect.h>
-#include <rfb/Configuration.h>
+#include <vector>
+
+#include <gtest/gtest.h>
+
+#include <core/Rect.h>
+#include <core/Configuration.h>
+
 #include "EmulateMB.h"
 
 // The button masks for the mouse buttons
@@ -37,19 +41,19 @@ static const int right          = 0x04;
 static const int both           = 0x05;
 static const int middleAndRight = 0x06;
 
-rfb::BoolParameter emulateMiddleButton("dummy_name", "dummy_desc", true);
+core::BoolParameter emulateMiddleButton("dummy_name", "dummy_desc", true);
 
 class TestClass : public EmulateMB
 {
 public:
-  void sendPointerEvent(const rfb::Point& pos, uint16_t buttonMask) override;
+  void sendPointerEvent(const core::Point& pos, uint16_t buttonMask) override;
 
-  struct PointerEventParams {rfb::Point pos; uint16_t mask; };
+  struct PointerEventParams {core::Point pos; uint16_t mask; };
 
   std::vector<PointerEventParams> results;
 };
 
-void TestClass::sendPointerEvent(const rfb::Point& pos, uint16_t buttonMask)
+void TestClass::sendPointerEvent(const core::Point& pos, uint16_t buttonMask)
 {
   PointerEventParams params;
   params.pos = pos;
@@ -57,435 +61,347 @@ void TestClass::sendPointerEvent(const rfb::Point& pos, uint16_t buttonMask)
   results.push_back(params);
 }
 
-#define ASSERT_EQ(expr, val) if ((expr) != (val)) { \
-  printf("FAILED on line %d (%s equals %d, expected %d)\n", __LINE__, #expr, (int)(expr), (int)(val)); \
-  return; \
-}
-
-void testDisabledOption()
+TEST(EmulateMB, disabledOption)
 {
   TestClass test;
-
-  printf("%s: ", __func__);
 
   emulateMiddleButton.setParam(false);
-  test.filterPointerEvent(rfb::Point(0, 10), left);
+  test.filterPointerEvent({0, 10}, left);
 
   ASSERT_EQ(test.results.size(), 1);
 
-  ASSERT_EQ(test.results[0].pos.x, 0);
-  ASSERT_EQ(test.results[0].pos.y, 10);
-  ASSERT_EQ(test.results[0].mask, left);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[0].pos.x, 0);
+  EXPECT_EQ(test.results[0].pos.y, 10);
+  EXPECT_EQ(test.results[0].mask, left);
 }
 
-void testLeftClick()
+TEST(EmulateMB, leftClick)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(0, 0), left);
-  test.filterPointerEvent(rfb::Point(0, 0), empty);
+  test.filterPointerEvent({0, 0}, left);
+  test.filterPointerEvent({0, 0}, empty);
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 0);
-  ASSERT_EQ(test.results[0].pos.y, 0);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 0);
+  EXPECT_EQ(test.results[0].pos.y, 0);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 0);
-  ASSERT_EQ(test.results[1].pos.y, 0);
-  ASSERT_EQ(test.results[1].mask, left);
+  EXPECT_EQ(test.results[1].pos.x, 0);
+  EXPECT_EQ(test.results[1].pos.y, 0);
+  EXPECT_EQ(test.results[1].mask, left);
 
-  ASSERT_EQ(test.results[2].pos.x, 0);
-  ASSERT_EQ(test.results[2].pos.y, 0);
-  ASSERT_EQ(test.results[2].mask, empty);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 0);
+  EXPECT_EQ(test.results[2].pos.y, 0);
+  EXPECT_EQ(test.results[2].mask, empty);
 }
 
-void testNormalLeftPress()
+TEST(EmulateMB, normalLeftPress)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(10, 20), left);
+  test.filterPointerEvent({10, 20}, left);
   usleep(100000); // 0.1s
-  rfb::Timer::checkTimeouts();
+  core::Timer::checkTimeouts();
 
   ASSERT_EQ(test.results.size(), 2);
 
-  ASSERT_EQ(test.results[0].pos.x, 10);
-  ASSERT_EQ(test.results[0].pos.y, 20);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 10);
+  EXPECT_EQ(test.results[0].pos.y, 20);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 10);
-  ASSERT_EQ(test.results[1].pos.y, 20);
-  ASSERT_EQ(test.results[1].mask, left);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[1].pos.x, 10);
+  EXPECT_EQ(test.results[1].pos.y, 20);
+  EXPECT_EQ(test.results[1].mask, left);
 }
 
-void testNormalMiddlePress()
+TEST(EmulateMB, normalMiddlePress)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(0, 0), middle);
+  test.filterPointerEvent({0, 0}, middle);
 
   ASSERT_EQ(test.results.size(), 1);
 
-  ASSERT_EQ(test.results[0].pos.x, 0);
-  ASSERT_EQ(test.results[0].pos.y, 0);
-  ASSERT_EQ(test.results[0].mask, middle);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[0].pos.x, 0);
+  EXPECT_EQ(test.results[0].pos.y, 0);
+  EXPECT_EQ(test.results[0].mask, middle);
 }
 
-void testNormalRightPress()
+TEST(EmulateMB, normalRightPress)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(0, 0), right);
+  test.filterPointerEvent({0, 0}, right);
   usleep(100000); // 0.1s
-  rfb::Timer::checkTimeouts();
+  core::Timer::checkTimeouts();
 
   ASSERT_EQ(test.results.size(), 2);
 
-  ASSERT_EQ(test.results[0].pos.x, 0);
-  ASSERT_EQ(test.results[0].pos.y, 0);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 0);
+  EXPECT_EQ(test.results[0].pos.y, 0);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 0);
-  ASSERT_EQ(test.results[1].pos.y, 0);
-  ASSERT_EQ(test.results[1].mask, right);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[1].pos.x, 0);
+  EXPECT_EQ(test.results[1].pos.y, 0);
+  EXPECT_EQ(test.results[1].mask, right);
 }
 
-void testEmulateMiddleMouseButton()
+TEST(EmulateMB, emulateMiddleMouseButton)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(20, 30), right);
-  test.filterPointerEvent(rfb::Point(20, 30), both);
+  test.filterPointerEvent({20, 30}, right);
+  test.filterPointerEvent({20, 30}, both);
 
   ASSERT_EQ(test.results.size(), 2);
 
-  ASSERT_EQ(test.results[0].pos.x, 20);
-  ASSERT_EQ(test.results[0].pos.y, 30);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 20);
+  EXPECT_EQ(test.results[0].pos.y, 30);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 20);
-  ASSERT_EQ(test.results[1].pos.y, 30);
-  ASSERT_EQ(test.results[1].mask, middle);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[1].pos.x, 20);
+  EXPECT_EQ(test.results[1].pos.y, 30);
+  EXPECT_EQ(test.results[1].mask, middle);
 }
 
-void testLeftReleaseAfterEmulate()
+TEST(EmulateMB, leftReleaseAfterEmulate)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(20, 30), left);
-  test.filterPointerEvent(rfb::Point(20, 30), both);
-  test.filterPointerEvent(rfb::Point(20, 30), right); // left released
+  test.filterPointerEvent({20, 30}, left);
+  test.filterPointerEvent({20, 30}, both);
+  test.filterPointerEvent({20, 30}, right); // left released
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 20);
-  ASSERT_EQ(test.results[0].pos.y, 30);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 20);
+  EXPECT_EQ(test.results[0].pos.y, 30);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 20);
-  ASSERT_EQ(test.results[1].pos.y, 30);
-  ASSERT_EQ(test.results[1].mask, middle);
+  EXPECT_EQ(test.results[1].pos.x, 20);
+  EXPECT_EQ(test.results[1].pos.y, 30);
+  EXPECT_EQ(test.results[1].mask, middle);
 
-  ASSERT_EQ(test.results[2].pos.x, 20);
-  ASSERT_EQ(test.results[2].pos.y, 30);
-  ASSERT_EQ(test.results[2].mask, middle);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 20);
+  EXPECT_EQ(test.results[2].pos.y, 30);
+  EXPECT_EQ(test.results[2].mask, middle);
 }
 
-void testRightReleaseAfterEmulate()
+TEST(EmulateMB, rightReleaseAfterEmulate)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(20, 30), right);
-  test.filterPointerEvent(rfb::Point(20, 30), both);
-  test.filterPointerEvent(rfb::Point(20, 30), left); // right released
+  test.filterPointerEvent({20, 30}, right);
+  test.filterPointerEvent({20, 30}, both);
+  test.filterPointerEvent({20, 30}, left); // right released
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 20);
-  ASSERT_EQ(test.results[0].pos.y, 30);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 20);
+  EXPECT_EQ(test.results[0].pos.y, 30);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 20);
-  ASSERT_EQ(test.results[1].pos.y, 30);
-  ASSERT_EQ(test.results[1].mask, middle);
+  EXPECT_EQ(test.results[1].pos.x, 20);
+  EXPECT_EQ(test.results[1].pos.y, 30);
+  EXPECT_EQ(test.results[1].mask, middle);
 
-  ASSERT_EQ(test.results[2].pos.x, 20);
-  ASSERT_EQ(test.results[2].pos.y, 30);
-  ASSERT_EQ(test.results[2].mask, middle);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 20);
+  EXPECT_EQ(test.results[2].pos.y, 30);
+  EXPECT_EQ(test.results[2].mask, middle);
 }
 
-void testLeftRepressAfterEmulate()
+TEST(EmulateMB, leftRepressAfterEmulate)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(20, 30), left);
-  test.filterPointerEvent(rfb::Point(20, 30), both);
-  test.filterPointerEvent(rfb::Point(20, 30), right); // left released
-  test.filterPointerEvent(rfb::Point(20, 30), both);
+  test.filterPointerEvent({20, 30}, left);
+  test.filterPointerEvent({20, 30}, both);
+  test.filterPointerEvent({20, 30}, right); // left released
+  test.filterPointerEvent({20, 30}, both);
 
   ASSERT_EQ(test.results.size(), 4);
 
-  ASSERT_EQ(test.results[0].pos.x, 20);
-  ASSERT_EQ(test.results[0].pos.y, 30);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 20);
+  EXPECT_EQ(test.results[0].pos.y, 30);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 20);
-  ASSERT_EQ(test.results[1].pos.y, 30);
-  ASSERT_EQ(test.results[1].mask, middle);
+  EXPECT_EQ(test.results[1].pos.x, 20);
+  EXPECT_EQ(test.results[1].pos.y, 30);
+  EXPECT_EQ(test.results[1].mask, middle);
 
-  ASSERT_EQ(test.results[2].pos.x, 20);
-  ASSERT_EQ(test.results[2].pos.y, 30);
-  ASSERT_EQ(test.results[2].mask, middle);
+  EXPECT_EQ(test.results[2].pos.x, 20);
+  EXPECT_EQ(test.results[2].pos.y, 30);
+  EXPECT_EQ(test.results[2].mask, middle);
 
-  ASSERT_EQ(test.results[3].pos.x, 20);
-  ASSERT_EQ(test.results[3].pos.y, 30);
-  ASSERT_EQ(test.results[3].mask, middleAndLeft);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[3].pos.x, 20);
+  EXPECT_EQ(test.results[3].pos.y, 30);
+  EXPECT_EQ(test.results[3].mask, middleAndLeft);
 }
 
-void testRightRepressAfterEmulate()
+TEST(EmulateMB, rightRepressAfterEmulate)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(20, 30), right);
-  test.filterPointerEvent(rfb::Point(20, 30), both);
-  test.filterPointerEvent(rfb::Point(20, 30), left); // right released
-  test.filterPointerEvent(rfb::Point(20, 30), both);
+  test.filterPointerEvent({20, 30}, right);
+  test.filterPointerEvent({20, 30}, both);
+  test.filterPointerEvent({20, 30}, left); // right released
+  test.filterPointerEvent({20, 30}, both);
 
   ASSERT_EQ(test.results.size(), 4);
 
-  ASSERT_EQ(test.results[0].pos.x, 20);
-  ASSERT_EQ(test.results[0].pos.y, 30);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 20);
+  EXPECT_EQ(test.results[0].pos.y, 30);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 20);
-  ASSERT_EQ(test.results[1].pos.y, 30);
-  ASSERT_EQ(test.results[1].mask, middle);
+  EXPECT_EQ(test.results[1].pos.x, 20);
+  EXPECT_EQ(test.results[1].pos.y, 30);
+  EXPECT_EQ(test.results[1].mask, middle);
 
-  ASSERT_EQ(test.results[2].pos.x, 20);
-  ASSERT_EQ(test.results[2].pos.y, 30);
-  ASSERT_EQ(test.results[2].mask, middle);
+  EXPECT_EQ(test.results[2].pos.x, 20);
+  EXPECT_EQ(test.results[2].pos.y, 30);
+  EXPECT_EQ(test.results[2].mask, middle);
 
-  ASSERT_EQ(test.results[3].pos.x, 20);
-  ASSERT_EQ(test.results[3].pos.y, 30);
-  ASSERT_EQ(test.results[3].mask, middleAndRight);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[3].pos.x, 20);
+  EXPECT_EQ(test.results[3].pos.y, 30);
+  EXPECT_EQ(test.results[3].mask, middleAndRight);
 }
 
-void testBothPressAfterLeftTimeout()
+TEST(EmulateMB, bothPressAfterLeftTimeout)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(10, 20), left);
+  test.filterPointerEvent({10, 20}, left);
   usleep(100000); // 0.1s
-  rfb::Timer::checkTimeouts();
-  test.filterPointerEvent(rfb::Point(10, 20), both);
+  core::Timer::checkTimeouts();
+  test.filterPointerEvent({10, 20}, both);
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 10);
-  ASSERT_EQ(test.results[0].pos.y, 20);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 10);
+  EXPECT_EQ(test.results[0].pos.y, 20);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 10);
-  ASSERT_EQ(test.results[1].pos.y, 20);
-  ASSERT_EQ(test.results[1].mask, left);
+  EXPECT_EQ(test.results[1].pos.x, 10);
+  EXPECT_EQ(test.results[1].pos.y, 20);
+  EXPECT_EQ(test.results[1].mask, left);
 
-  ASSERT_EQ(test.results[2].pos.x, 10);
-  ASSERT_EQ(test.results[2].pos.y, 20);
-  ASSERT_EQ(test.results[2].mask, both);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 10);
+  EXPECT_EQ(test.results[2].pos.y, 20);
+  EXPECT_EQ(test.results[2].mask, both);
 }
 
-void testBothPressAfterRightTimeout()
+TEST(EmulateMB, bothPressAfterRightTimeout)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(10, 20), right);
+  test.filterPointerEvent({10, 20}, right);
   usleep(100000); // 0.1s
-  rfb::Timer::checkTimeouts();
-  test.filterPointerEvent(rfb::Point(10, 20), both);
+  core::Timer::checkTimeouts();
+  test.filterPointerEvent({10, 20}, both);
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 10);
-  ASSERT_EQ(test.results[0].pos.y, 20);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 10);
+  EXPECT_EQ(test.results[0].pos.y, 20);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 10);
-  ASSERT_EQ(test.results[1].pos.y, 20);
-  ASSERT_EQ(test.results[1].mask, right);
+  EXPECT_EQ(test.results[1].pos.x, 10);
+  EXPECT_EQ(test.results[1].pos.y, 20);
+  EXPECT_EQ(test.results[1].mask, right);
 
-  ASSERT_EQ(test.results[2].pos.x, 10);
-  ASSERT_EQ(test.results[2].pos.y, 20);
-  ASSERT_EQ(test.results[2].mask, both);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 10);
+  EXPECT_EQ(test.results[2].pos.y, 20);
+  EXPECT_EQ(test.results[2].mask, both);
 }
 
-void testTimeoutAndDrag()
+TEST(EmulateMB, timeoutAndDrag)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(0, 0), left);
+  test.filterPointerEvent({0, 0}, left);
   usleep(100000); //0.1s
-  rfb::Timer::checkTimeouts();
-  test.filterPointerEvent(rfb::Point(10, 10), left);
+  core::Timer::checkTimeouts();
+  test.filterPointerEvent({10, 10}, left);
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 0);
-  ASSERT_EQ(test.results[0].pos.y, 0);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 0);
+  EXPECT_EQ(test.results[0].pos.y, 0);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 0);
-  ASSERT_EQ(test.results[1].pos.y, 0);
-  ASSERT_EQ(test.results[1].mask, left);
+  EXPECT_EQ(test.results[1].pos.x, 0);
+  EXPECT_EQ(test.results[1].pos.y, 0);
+  EXPECT_EQ(test.results[1].mask, left);
 
-  ASSERT_EQ(test.results[2].pos.x, 10);
-  ASSERT_EQ(test.results[2].pos.y, 10);
-  ASSERT_EQ(test.results[2].mask, left);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 10);
+  EXPECT_EQ(test.results[2].pos.y, 10);
+  EXPECT_EQ(test.results[2].mask, left);
 }
 
-void testDragAndTimeout()
+TEST(EmulateMB, dragAndTimeout)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(10, 10), left);
-  test.filterPointerEvent(rfb::Point(30, 30), left);
+  test.filterPointerEvent({10, 10}, left);
+  test.filterPointerEvent({30, 30}, left);
   usleep(100000); //0.1s
-  rfb::Timer::checkTimeouts();
+  core::Timer::checkTimeouts();
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 10);
-  ASSERT_EQ(test.results[0].pos.y, 10);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 10);
+  EXPECT_EQ(test.results[0].pos.y, 10);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 10);
-  ASSERT_EQ(test.results[1].pos.y, 10);
-  ASSERT_EQ(test.results[1].mask, left);
+  EXPECT_EQ(test.results[1].pos.x, 10);
+  EXPECT_EQ(test.results[1].pos.y, 10);
+  EXPECT_EQ(test.results[1].mask, left);
 
-  ASSERT_EQ(test.results[2].pos.x, 30);
-  ASSERT_EQ(test.results[2].pos.y, 30);
-  ASSERT_EQ(test.results[2].mask, left);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 30);
+  EXPECT_EQ(test.results[2].pos.y, 30);
+  EXPECT_EQ(test.results[2].mask, left);
 }
 
-void testDragAndRelease()
+TEST(EmulateMB, dragAndRelease)
 {
   TestClass test;
 
-  printf("%s: ", __func__);
-
   emulateMiddleButton.setParam(true);
-  test.filterPointerEvent(rfb::Point(10, 10), left);
-  test.filterPointerEvent(rfb::Point(20, 20), empty);
+  test.filterPointerEvent({10, 10}, left);
+  test.filterPointerEvent({20, 20}, empty);
 
   ASSERT_EQ(test.results.size(), 3);
 
-  ASSERT_EQ(test.results[0].pos.x, 10);
-  ASSERT_EQ(test.results[0].pos.y, 10);
-  ASSERT_EQ(test.results[0].mask, empty);
+  EXPECT_EQ(test.results[0].pos.x, 10);
+  EXPECT_EQ(test.results[0].pos.y, 10);
+  EXPECT_EQ(test.results[0].mask, empty);
 
-  ASSERT_EQ(test.results[1].pos.x, 10);
-  ASSERT_EQ(test.results[1].pos.y, 10);
-  ASSERT_EQ(test.results[1].mask, left);
+  EXPECT_EQ(test.results[1].pos.x, 10);
+  EXPECT_EQ(test.results[1].pos.y, 10);
+  EXPECT_EQ(test.results[1].mask, left);
 
-  ASSERT_EQ(test.results[2].pos.x, 20);
-  ASSERT_EQ(test.results[2].pos.y, 20);
-  ASSERT_EQ(test.results[2].mask, empty);
-
-  printf("OK\n");
+  EXPECT_EQ(test.results[2].pos.x, 20);
+  EXPECT_EQ(test.results[2].pos.y, 20);
+  EXPECT_EQ(test.results[2].mask, empty);
 }
 
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char** argv)
 {
-  testDisabledOption();
-
-  testLeftClick();
-
-  testNormalLeftPress();
-  testNormalMiddlePress();
-  testNormalRightPress();
-
-  testEmulateMiddleMouseButton();
-
-  testLeftReleaseAfterEmulate();
-  testRightReleaseAfterEmulate();
-
-  testLeftRepressAfterEmulate();
-  testRightRepressAfterEmulate();
-
-  testBothPressAfterLeftTimeout();
-  testBothPressAfterRightTimeout();
-
-  testTimeoutAndDrag();
-
-  testDragAndTimeout();
-  testDragAndRelease();
-
-  return 0;
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
