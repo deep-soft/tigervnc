@@ -79,9 +79,7 @@ static core::LogWriter vlog("DesktopWindow");
 // issue for Fl::event_dispatch.
 static std::set<DesktopWindow *> instances;
 
-DesktopWindow::DesktopWindow(int w, int h, const char *name,
-                             const rfb::PixelFormat& serverPF,
-                             CConn* cc_)
+DesktopWindow::DesktopWindow(int w, int h, CConn* cc_)
   : Fl_Window(w, h), cc(cc_), offscreen(nullptr), overlay(nullptr),
     firstUpdate(true),
     delayedFullscreen(false), sentDesktopSize(false),
@@ -97,7 +95,7 @@ DesktopWindow::DesktopWindow(int w, int h, const char *name,
   group->resizable(nullptr);
   resizable(group);
 
-  viewport = new Viewport(w, h, serverPF, cc);
+  viewport = new Viewport(w, h, cc);
 
   // Position will be adjusted later
   hscroll = new Fl_Scrollbar(0, 0, 0, 0);
@@ -110,7 +108,7 @@ DesktopWindow::DesktopWindow(int w, int h, const char *name,
 
   callback(handleClose, this);
 
-  setName(name);
+  setName();
 
   OptionsDialog::addCallback(handleOptions, this);
 
@@ -284,46 +282,47 @@ const rfb::PixelFormat &DesktopWindow::getPreferredPF()
 }
 
 
-void DesktopWindow::setName(const char *name)
+void DesktopWindow::setName()
 {
-  char windowNameStr[100];
+  const size_t maxLen = 100;
+  std::string windowName;
   const char *labelFormat;
   size_t maxNameSize;
-  char truncatedName[sizeof(windowNameStr)];
+  std::string name;
+
+  // FIXME: All of this consideres bytes, not characters
 
   labelFormat = "%s - TigerVNC";
 
   // Ignore the length of '%s' since it is
   // a format marker which won't take up space
-  maxNameSize = sizeof(windowNameStr) - 1 - strlen(labelFormat) + 2;
+  maxNameSize = maxLen - strlen(labelFormat) + 2;
 
-  if (maxNameSize > strlen(name)) {
-    // Guaranteed to fit, no need to truncate
-    strcpy(truncatedName, name);
-  } else if (maxNameSize <= strlen("...")) {
-    // Even an ellipsis won't fit
-    truncatedName[0] = '\0';
-  } else {
-    int offset;
+  name = cc->server.name();
 
-    // We need to truncate, add an ellipsis
-    offset = maxNameSize - strlen("...");
-    strncpy(truncatedName, name, sizeof(truncatedName));
-    strcpy(truncatedName + offset, "...");
+  if (name.size() > maxNameSize) {
+    if (maxNameSize <= strlen("...")) {
+      // Even an ellipsis won't fit
+      name.clear();
+    }
+    else {
+      int offset;
+
+      // We need to truncate, add an ellipsis
+      offset = maxNameSize - strlen("...");
+      name.resize(offset);
+      name += "...";
+    }
   }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 
-  if (snprintf(windowNameStr, sizeof(windowNameStr), labelFormat,
-               truncatedName) >= (int)sizeof(windowNameStr)) {
-    // This is just to shut up the compiler, as we've already made sure
-    // we won't truncate anything
-  }
+  windowName = core::format(labelFormat, name.c_str());
 
 #pragma GCC diagnostic pop
 
-  copy_label(windowNameStr);
+  copy_label(windowName.c_str());
 }
 
 
@@ -410,11 +409,9 @@ void DesktopWindow::setDesktopSizeDone(unsigned result)
 }
 
 
-void DesktopWindow::setCursor(int width, int height,
-                              const core::Point& hotspot,
-                              const uint8_t* data)
+void DesktopWindow::setCursor()
 {
-  viewport->setCursor(width, height, hotspot, data);
+  viewport->setCursor();
 }
 
 
@@ -925,6 +922,17 @@ int DesktopWindow::fltkDispatch(int event, Fl_Window *win)
   if ((event == FL_MOVE) && (win == nullptr))
     return 0;
 
+#if !defined(WIN32) && !defined(__APPLE__)
+  // FLTK passes through the fake grab focus events that can cause us
+  // to end up in an infinite loop
+  // https://github.com/fltk/fltk/issues/295
+  if ((event == FL_FOCUS) || (event == FL_UNFOCUS)) {
+    const XFocusChangeEvent* xfocus = &fl_xevent->xfocus;
+    if ((xfocus->mode == NotifyGrab) || (xfocus->mode == NotifyUngrab))
+      return 0;
+  }
+#endif
+
   ret = Fl::handle_(event, win);
 
   // This is hackish and the result of the dodgy focus handling in FLTK.
@@ -1089,24 +1097,6 @@ void DesktopWindow::fullscreen_on()
     fullscreen();
 }
 
-#if !defined(WIN32) && !defined(__APPLE__)
-Bool eventIsFocusWithSerial(Display* /*display*/, XEvent *event,
-                            XPointer arg)
-{
-  unsigned long serial;
-
-  serial = *(unsigned long*)arg;
-
-  if (event->xany.serial != serial)
-    return False;
-
-  if ((event->type != FocusIn) && (event->type != FocusOut))
-    return False;
-
-  return True;
-}
-#endif
-
 bool DesktopWindow::hasFocus()
 {
   Fl_Widget* focus;
@@ -1154,11 +1144,6 @@ void DesktopWindow::grabKeyboard()
 #else
   int ret;
 
-  XEvent xev;
-  unsigned long serial;
-
-  serial = XNextRequest(fl_display);
-
   ret = XGrabKeyboard(fl_display, fl_xid(this), True,
                       GrabModeAsync, GrabModeAsync, CurrentTime);
   if (ret) {
@@ -1171,16 +1156,6 @@ void DesktopWindow::grabKeyboard()
       vlog.error(_("Failure grabbing keyboard"));
     }
     return;
-  }
-
-  // Xorg 1.20+ generates FocusIn/FocusOut even when there is no actual
-  // change of focus. This causes us to get stuck in an endless loop
-  // grabbing and ungrabbing the keyboard. Avoid this by filtering out
-  // any focus events generated by XGrabKeyboard().
-  XSync(fl_display, False);
-  while (XCheckIfEvent(fl_display, &xev, &eventIsFocusWithSerial,
-                       (XPointer)&serial) == True) {
-    vlog.debug("Ignored synthetic focus event cause by grab change");
   }
 #endif
 
@@ -1208,19 +1183,7 @@ void DesktopWindow::ungrabKeyboard()
   if (Fl::grab())
     return;
 
-  XEvent xev;
-  unsigned long serial;
-
-  serial = XNextRequest(fl_display);
-
   XUngrabKeyboard(fl_display, CurrentTime);
-
-  // See grabKeyboard()
-  XSync(fl_display, False);
-  while (XCheckIfEvent(fl_display, &xev, &eventIsFocusWithSerial,
-                       (XPointer)&serial) == True) {
-    vlog.debug("Ignored synthetic focus event cause by grab change");
-  }
 #endif
 }
 

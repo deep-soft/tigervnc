@@ -314,8 +314,6 @@ void VNCSConnectionST::requestClipboardOrClose()
 {
   try {
     if (state() != RFBSTATE_NORMAL) return;
-    if (!accessCheck(AccessCutText)) return;
-    if (!rfb::Server::acceptCutText) return;
     requestClipboard();
   } catch(std::exception& e) {
     close(e.what());
@@ -326,8 +324,6 @@ void VNCSConnectionST::announceClipboardOrClose(bool available)
 {
   try {
     if (state() != RFBSTATE_NORMAL) return;
-    if (!accessCheck(AccessCutText)) return;
-    if (!rfb::Server::sendCutText) return;
     announceClipboard(available);
   } catch(std::exception& e) {
     close(e.what());
@@ -338,8 +334,6 @@ void VNCSConnectionST::sendClipboardDataOrClose(const char* data)
 {
   try {
     if (state() != RFBSTATE_NORMAL) return;
-    if (!accessCheck(AccessCutText)) return;
-    if (!rfb::Server::sendCutText) return;
     sendClipboardData(data);
   } catch(std::exception& e) {
     close(e.what());
@@ -467,6 +461,7 @@ void VNCSConnectionST::setPixelFormat(const PixelFormat& pf)
   pf.print(buffer, 256);
   vlog.info("Client pixel format %s", buffer);
   setCursor();
+  encodeManager.forceRefresh(server->getPixelBuffer()->getRect());
 }
 
 void VNCSConnectionST::pointerEvent(const core::Point& pos,
@@ -476,7 +471,6 @@ void VNCSConnectionST::pointerEvent(const core::Point& pos,
     idleTimer.start(core::secsToMillis(rfb::Server::idleTimeout));
   pointerEventTime = time(nullptr);
   if (!accessCheck(AccessPtrEvents)) return;
-  if (!rfb::Server::acceptPointerEvents) return;
   pointerEventPos = pos;
   server->pointerEvent(this, pointerEventPos, buttonMask);
 }
@@ -509,6 +503,8 @@ void VNCSConnectionST::keyEvent(uint32_t keysym, uint32_t keycode, bool down) {
   if (rfb::Server::idleTimeout)
     idleTimer.start(core::secsToMillis(rfb::Server::idleTimeout));
   if (!accessCheck(AccessKeyEvents)) return;
+  // FIXME: This check isn't strictly needed, but we get a lot of
+  //        confusing debug logging without it
   if (!rfb::Server::acceptKeyEvents) return;
 
   if (down)
@@ -662,8 +658,7 @@ void VNCSConnectionST::setDesktopSize(int fb_width, int fb_height,
   layout.print(buffer, sizeof(buffer));
   vlog.debug("%s", buffer);
 
-  if (!accessCheck(AccessSetDesktopSize) ||
-      !rfb::Server::acceptSetDesktopSize) {
+  if (!accessCheck(AccessSetDesktopSize)) {
     vlog.debug("Rejecting unauthorized framebuffer resize request");
     result = resultProhibited;
   } else {
@@ -744,21 +739,16 @@ void VNCSConnectionST::enableContinuousUpdates(bool enable,
 
 void VNCSConnectionST::handleClipboardRequest()
 {
-  if (!accessCheck(AccessCutText)) return;
   server->handleClipboardRequest(this);
 }
 
 void VNCSConnectionST::handleClipboardAnnounce(bool available)
 {
-  if (!accessCheck(AccessCutText)) return;
-  if (!rfb::Server::acceptCutText) return;
   server->handleClipboardAnnounce(this, available);
 }
 
 void VNCSConnectionST::handleClipboardData(const char* data)
 {
-  if (!accessCheck(AccessCutText)) return;
-  if (!rfb::Server::acceptCutText) return;
   server->handleClipboardData(this, data);
 }
 

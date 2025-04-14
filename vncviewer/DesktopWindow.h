@@ -37,8 +37,7 @@ class Fl_Scrollbar;
 class DesktopWindow : public Fl_Window {
 public:
 
-  DesktopWindow(int w, int h, const char *name,
-                const rfb::PixelFormat& serverPF, CConn* cc_);
+  DesktopWindow(int w, int h, CConn* cc_);
   ~DesktopWindow();
 
   // Most efficient format (from DesktopWindow's point of view)
@@ -48,7 +47,7 @@ public:
   void updateWindow();
 
   // Updated session title
-  void setName(const char *name);
+  void setName();
 
   // Resize the current framebuffer, but retain the contents
   void resizeFramebuffer(int new_w, int new_h);
@@ -57,8 +56,7 @@ public:
   void setDesktopSizeDone(unsigned result);
 
   // New image for the locally rendered cursor
-  void setCursor(int width, int height, const core::Point& hotspot,
-                 const uint8_t* data);
+  void setCursor();
 
   // Server-provided cursor position
   void setCursorPos(const core::Point& pos);

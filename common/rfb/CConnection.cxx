@@ -37,6 +37,7 @@
 #include <rfb/CMsgReader.h>
 #include <rfb/CMsgWriter.h>
 #include <rfb/CSecurity.h>
+#include <rfb/Cursor.h>
 #include <rfb/Decoder.h>
 #include <rfb/KeysymStr.h>
 #include <rfb/PixelBuffer.h>
@@ -379,7 +380,6 @@ void CConnection::securityCompleted()
   reader_ = new CMsgReader(this, is);
   writer_ = new CMsgWriter(&server, os);
   vlog.debug("Authentication success!");
-  authSuccess();
   writer_->writeClientInit(shared);
 }
 
@@ -410,7 +410,7 @@ void CConnection::setDesktopSize(int w, int h)
 {
   decoder.flush();
 
-  CMsgHandler::setDesktopSize(w,h);
+  server.setDimensions(w, h);
 
   if (continuousUpdates)
     writer()->writeEnableContinuousUpdates(true, 0, 0,
@@ -430,7 +430,10 @@ void CConnection::setExtendedDesktopSize(unsigned reason,
 {
   decoder.flush();
 
-  CMsgHandler::setExtendedDesktopSize(reason, result, w, h, layout);
+  server.supportsSetDesktopSize = true;
+
+  if ((reason != reasonClient) || (result == resultSuccess))
+    server.setDimensions(w, h, layout);
 
   if ((reason == reasonClient) && (result != resultSuccess)) {
     vlog.error("SetDesktopSize failed: %d", result);
@@ -448,9 +451,41 @@ void CConnection::setExtendedDesktopSize(unsigned reason,
   assert(framebuffer->height() == server.height());
 }
 
+void CConnection::setCursor(int width, int height,
+                            const core::Point& hotspot,
+                            const uint8_t* data)
+{
+  Cursor cursor(width, height, hotspot, data);
+  server.setCursor(cursor);
+}
+
+void CConnection::setCursorPos(const core::Point& /*pos*/)
+{
+}
+
+void CConnection::setName(const char* name)
+{
+  server.setName(name);
+}
+
+void CConnection::fence(uint32_t flags, unsigned len, const uint8_t data[])
+{
+  server.supportsFence = true;
+
+  if (flags & fenceFlagRequest) {
+    // FIXME: We handle everything synchronously, and we assume anything
+    //        using us also does so, which means we automatically handle
+    //        these flags
+    flags = flags & (fenceFlagBlockBefore | fenceFlagBlockAfter);
+
+    writer()->writeFence(flags, len, data);
+    return;
+  }
+}
+
 void CConnection::endOfContinuousUpdates()
 {
-  CMsgHandler::endOfContinuousUpdates();
+  server.supportsContinuousUpdates = true;
 
   // We've gotten the marker for a format change, so make the pending
   // one active
@@ -464,11 +499,23 @@ void CConnection::endOfContinuousUpdates()
   }
 }
 
+void CConnection::supportsQEMUKeyEvent()
+{
+  server.supportsQEMUKeyEvent = true;
+}
+
+void CConnection::supportsExtendedMouseButtons()
+{
+  server.supportsExtendedMouseButtons = true;
+}
+
 void CConnection::serverInit(int width, int height,
                              const PixelFormat& pf,
                              const char* name)
 {
-  CMsgHandler::serverInit(width, height, pf, name);
+  server.setDimensions(width, height);
+  server.setPF(pf);
+  server.setName(name);
 
   state_ = RFBSTATE_NORMAL;
   vlog.debug("Initialisation done");
@@ -502,8 +549,6 @@ bool CConnection::readAndDecodeRect(const core::Rect& r, int encoding,
 
 void CConnection::framebufferUpdateStart()
 {
-  CMsgHandler::framebufferUpdateStart();
-
   assert(framebuffer != nullptr);
 
   // Note: This might not be true if continuous updates are supported
@@ -515,8 +560,6 @@ void CConnection::framebufferUpdateStart()
 void CConnection::framebufferUpdateEnd()
 {
   decoder.flush();
-
-  CMsgHandler::framebufferUpdateEnd();
 
   // A format change has been scheduled and we are now past the update
   // with the old format. Time to active the new one.
@@ -543,6 +586,13 @@ bool CConnection::dataRect(const core::Rect& r, int encoding)
   return decoder.decodeRect(r, encoding, framebuffer);
 }
 
+void CConnection::setColourMapEntries(int /*firstColour*/,
+                                      int /*nColours*/,
+                                      uint16_t* /*rgbs*/)
+{
+  vlog.error("Invalid SetColourMapEntries from server!");
+}
+
 void CConnection::serverCutText(const char* str)
 {
   hasLocalClipboard = false;
@@ -553,12 +603,53 @@ void CConnection::serverCutText(const char* str)
   handleClipboardAnnounce(true);
 }
 
+void CConnection::setLEDState(unsigned int state)
+{
+  server.setLEDState(state);
+}
+
 void CConnection::handleClipboardCaps(uint32_t flags,
                                       const uint32_t* lengths)
 {
+  int i;
   uint32_t sizes[] = { 0 };
 
-  CMsgHandler::handleClipboardCaps(flags, lengths);
+  vlog.debug("Got server clipboard capabilities:");
+  for (i = 0;i < 16;i++) {
+    if (flags & (1 << i)) {
+      const char *type;
+
+      switch (1 << i) {
+        case clipboardUTF8:
+          type = "Plain text";
+          break;
+        case clipboardRTF:
+          type = "Rich text";
+          break;
+        case clipboardHTML:
+          type = "HTML";
+          break;
+        case clipboardDIB:
+          type = "Images";
+          break;
+        case clipboardFiles:
+          type = "Files";
+          break;
+        default:
+          vlog.debug("    Unknown format 0x%x", 1 << i);
+          continue;
+      }
+
+      if (lengths[i] == 0)
+        vlog.debug("    %s (only notify)", type);
+      else {
+        vlog.debug("    %s (automatically send up to %s)",
+                   type, core::iecPrefix(lengths[i], "B").c_str());
+      }
+    }
+  }
+
+  server.setClipboardCaps(flags, lengths);
 
   writer()->writeClipboardCaps(rfb::clipboardUTF8 |
                                rfb::clipboardRequest |
@@ -618,10 +709,6 @@ void CConnection::handleClipboardProvide(uint32_t flags,
 
   // FIXME: Should probably verify that this data was actually requested
   handleClipboardData(serverClipboard.c_str());
-}
-
-void CConnection::authSuccess()
-{
 }
 
 void CConnection::initDone()
@@ -820,6 +907,11 @@ void CConnection::setCompressLevel(int level)
   encodingChange = true;
 }
 
+int CConnection::getCompressLevel()
+{
+  return compressLevel;
+}
+
 void CConnection::setQualityLevel(int level)
 {
   if (qualityLevel == level)
@@ -827,6 +919,11 @@ void CConnection::setQualityLevel(int level)
 
   qualityLevel = level;
   encodingChange = true;
+}
+
+int CConnection::getQualityLevel()
+{
+  return qualityLevel;
 }
 
 void CConnection::setPF(const PixelFormat& pf)
@@ -841,19 +938,6 @@ void CConnection::setPF(const PixelFormat& pf)
 bool CConnection::isSecure() const
 {
   return csecurity ? csecurity->isSecure() : false;
-}
-
-void CConnection::fence(uint32_t flags, unsigned len, const uint8_t data[])
-{
-  CMsgHandler::fence(flags, len, data);
-
-  if (!(flags & fenceFlagRequest))
-    return;
-
-  // We cannot guarantee any synchronisation at this level
-  flags = 0;
-
-  writer()->writeFence(flags, len, data);
 }
 
 // requestNewUpdate() requests an update from the server, having set the

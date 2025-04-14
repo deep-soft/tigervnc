@@ -31,6 +31,7 @@
 #include <core/string.h>
 
 #include <rfb/CMsgWriter.h>
+#include <rfb/Cursor.h>
 #include <rfb/ledStates.h>
 
 // FLTK can pull in the X11 headers on some systems
@@ -87,7 +88,7 @@ static const int FAKE_DEL_KEY_CODE = 0x10003;
 // Used for fake key presses for lock key sync
 static const int FAKE_KEY_CODE = 0xffff;
 
-Viewport::Viewport(int w, int h, const rfb::PixelFormat& /*serverPF*/, CConn* cc_)
+Viewport::Viewport(int w, int h, CConn* cc_)
   : Fl_Widget(0, 0, w, h), cc(cc_), frameBuffer(nullptr),
     lastPointerPos(0, 0), lastButtonMask(0),
     keyboard(nullptr),
@@ -134,7 +135,7 @@ Viewport::Viewport(int w, int h, const rfb::PixelFormat& /*serverPF*/, CConn* cc
   OptionsDialog::addCallback(handleOptions, this);
 
   // Make sure we have an initial blank cursor set
-  setCursor(0, 0, {0, 0}, nullptr);
+  setCursor();
 }
 
 
@@ -191,10 +192,12 @@ static const char * dotcursor_xpm[] = {
   " ... ",
   "     "};
 
-void Viewport::setCursor(int width, int height,
-                         const core::Point& hotspot,
-                         const uint8_t* data)
+void Viewport::setCursor()
 {
+  int width, height;
+  core::Point hotspot;
+  const uint8_t* data;
+
   int i;
 
   if (cursor) {
@@ -202,6 +205,11 @@ void Viewport::setCursor(int width, int height,
       delete [] cursor->array;
     delete cursor;
   }
+
+  width = cc->server.cursor().width();
+  height = cc->server.cursor().height();
+  hotspot = cc->server.cursor().hotspot();
+  data = cc->server.cursor().getBuffer();
 
   for (i = 0; i < width*height; i++)
     if (data[i*4 + 3] != 0) break;
@@ -718,13 +726,11 @@ int Viewport::handleSystemEvent(void *event, void *data)
   if (!self->hasFocus())
     return 0;
 
-#ifdef __APPLE__
   // Special event that means we temporarily lost some input
-  if (KeyboardMacOS::isKeyboardSync(event)) {
+  if (self->keyboard->isKeyboardReset(event)) {
     self->resetKeyboard();
     return 1;
   }
-#endif
 
   consumed = self->keyboard->handleEvent(event);
   if (consumed)

@@ -176,11 +176,13 @@ ddxGiveUp(enum ExitCode error)
     vncFreeFramebufferMemory(&vncScreenInfo.fb);
 }
 
+#if XORG_OLDER_THAN(1, 21, 1)
 void
 AbortDDX(enum ExitCode error)
 {
     ddxGiveUp(error);
 }
+#endif
 
 void
 OsVendorInit(void)
@@ -278,12 +280,14 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (argv[i][0] == ':')
         displaySpecified = TRUE;
 
+#if XORG_OLDER_THAN(1, 21, 1)
 #define CHECK_FOR_REQUIRED_ARGUMENTS(num) \
     if (((i + num) >= argc) || (!argv[i + num])) {                      \
       ErrorF("Required argument to %s not specified\n", argv[i]);       \
       UseMsg();                                                         \
       FatalError("Required argument to %s not specified\n", argv[i]);   \
     }
+#endif
 
     if (strcmp(argv[i], "-pixdepths") == 0) {   /* -pixdepths list-of-depth */
         int depth, ret = 1;
@@ -442,7 +446,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     if (!strcmp(argv[i], "-showconfig") || !strcmp(argv[i], "-version")) {
-        /* Already shown at start */
+        vncPrintBanner();
         exit(0);
     }
 
@@ -761,12 +765,13 @@ vncRandRModeGet(int width, int height)
     xRRModeInfo modeInfo;
     char name[100];
     RRModePtr mode;
+#ifdef HAVE_LIBXCVT
+    struct libxcvt_mode_info *cvtMode;
+#endif
 
     memset(&modeInfo, 0, sizeof(modeInfo));
 
 #ifdef HAVE_LIBXCVT
-    struct libxcvt_mode_info *cvtMode;
-
     cvtMode = libxcvt_gen_mode_info(width, height, 60.0, false, false);
 
     modeInfo.width      = cvtMode->hdisplay;
@@ -899,7 +904,7 @@ vncRandRCreateScreenOutputs(int scrIdx, int extraOutputs)
 /* Creating and modifying modes, used by XserverDesktop and init here */
 
 int
-vncRandRCanCreateModes()
+vncRandRCanCreateModes(void)
 {
     return 1;
 }
@@ -1166,8 +1171,11 @@ InitOutput(ScreenInfo * scrInfo, int argc, char **argv)
     int i;
     int NumFormats = 0;
 
-    if (serverGeneration == 1)
+    if (serverGeneration == 1) {
+        vncPrintBanner();
+
         LoadExtensionList(vncExtensions, ARRAY_SIZE(vncExtensions), TRUE);
+    }
 
 #if XORG_AT_LEAST(1, 20, 0)
     xorgGlxCreateVendor();
@@ -1224,11 +1232,13 @@ DDXRingBell(int percent, int pitch, int duration)
         vncBell();
 }
 
+#if XORG_OLDER_THAN(1, 21, 1)
 Bool
 LegalModifier(unsigned int key, DeviceIntPtr pDev)
 {
     return TRUE;
 }
+#endif
 
 void
 ProcessInputEvents(void)
@@ -1259,7 +1269,5 @@ vncClientGone(int fd)
 int
 main(int argc, char *argv[], char *envp[])
 {
-    vncPrintBanner();
-
     return dix_main(argc, argv, envp);
 }

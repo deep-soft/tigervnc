@@ -42,6 +42,8 @@ public:
   unsigned getPixelCount();
   unsigned getPosition();
 
+protected:
+
   // Callback when socket is ready (or broken)
   static void socketEvent(FL_SOCKET fd, void *data);
 
@@ -63,9 +65,6 @@ public:
 
   void setName(const char* name) override;
 
-  void setColourMapEntries(int firstColour, int nColours,
-                           uint16_t* rgbs) override;
-
   void bell() override;
 
   void framebufferUpdateStart() override;
@@ -75,9 +74,6 @@ public:
   void setCursor(int width, int height, const core::Point& hotspot,
                  const uint8_t* data) override;
   void setCursorPos(const core::Point& pos) override;
-
-  void fence(uint32_t flags, unsigned len,
-             const uint8_t data[]) override;
 
   void setLEDState(unsigned int state) override;
 
@@ -89,7 +85,9 @@ private:
 
   void resizeFramebuffer() override;
 
-  void autoSelectFormatAndEncoding();
+  void updateEncoding();
+  void updateCompressLevel();
+  void updateQualityLevel();
   void updatePixelFormat();
 
   static void handleOptions(void *data);
@@ -106,7 +104,6 @@ private:
   unsigned updateCount;
   unsigned pixelCount;
 
-  rfb::PixelFormat serverPF;
   rfb::PixelFormat fullColourPF;
 
   int lastServerEncoding;

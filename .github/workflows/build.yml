@@ -8,6 +8,8 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      VERBOSE: 1
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -44,6 +46,8 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 20
+    env:
+      VERBOSE: 1
     defaults:
       run:
         shell: msys2 {0}
@@ -90,6 +94,8 @@ jobs:
   build-macos:
     runs-on: macos-latest
     timeout-minutes: 20
+    env:
+      VERBOSE: 1
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -123,6 +129,8 @@ jobs:
   build-java:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      VERBOSE: 1
     strategy:
       matrix:
         java: [ '8', '11', '17', '21' ]

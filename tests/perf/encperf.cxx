@@ -98,8 +98,6 @@ public:
 
   void initDone() override {};
   void resizeFramebuffer() override;
-  void setCursor(int, int, const core::Point&, const uint8_t*) override;
-  void setCursorPos(const core::Point&) override;
   void framebufferUpdateStart() override;
   void framebufferUpdateEnd() override;
   bool dataRect(const core::Rect&, int) override;
@@ -140,6 +138,10 @@ public:
 
   void setDesktopSize(int fb_width, int fb_height,
                       const rfb::ScreenSet& layout) override;
+
+  void keyEvent(uint32_t keysym, uint32_t keycode, bool down) override;
+  void pointerEvent(const core::Point& pos,
+                    uint16_t buttonMask) override;
 
 protected:
   DummyOutStream *out;
@@ -194,7 +196,7 @@ CConn::CConn(const char *filename)
 
   sc = new SConn();
   sc->client.setPF((bool)translate ? fbPF : pf);
-  sc->setEncodings(sizeof(encodings) / sizeof(*encodings), encodings);
+  ((rfb::SMsgHandler*)sc)->setEncodings(sizeof(encodings) / sizeof(*encodings), encodings);
 }
 
 CConn::~CConn()
@@ -217,14 +219,6 @@ void CConn::resizeFramebuffer()
   pb = new rfb::ManagedPixelBuffer((bool)translate ? fbPF : server.pf(),
                                    server.width(), server.height());
   setFramebuffer(pb);
-}
-
-void CConn::setCursor(int, int, const core::Point&, const uint8_t*)
-{
-}
-
-void CConn::setCursorPos(const core::Point&)
-{
 }
 
 void CConn::framebufferUpdateStart()
@@ -346,6 +340,14 @@ void SConn::setAccessRights(rfb::AccessRights)
 }
 
 void SConn::setDesktopSize(int, int, const rfb::ScreenSet&)
+{
+}
+
+void SConn::keyEvent(uint32_t, uint32_t, bool)
+{
+}
+
+void SConn::pointerEvent(const core::Point&, uint16_t)
 {
 }
 

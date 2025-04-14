@@ -39,7 +39,7 @@ class Viewport : public Fl_Widget, protected EmulateMB,
                  protected KeyboardHandler {
 public:
 
-  Viewport(int w, int h, const rfb::PixelFormat& serverPF, CConn* cc_);
+  Viewport(int w, int h, CConn* cc_);
   ~Viewport();
 
   // Most efficient format (from Viewport's point of view)
@@ -49,8 +49,7 @@ public:
   void updateWindow();
 
   // New image for the locally rendered cursor
-  void setCursor(int width, int height, const core::Point& hotspot,
-                 const uint8_t* data);
+  void setCursor();
 
   // Change client LED state
   void setLEDState(unsigned int state);

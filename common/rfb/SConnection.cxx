@@ -154,8 +154,6 @@ bool SConnection::processVersionMsg()
                client.majorVersion,client.minorVersion);
   }
 
-  versionReceived();
-
   std::list<uint8_t> secTypes;
   std::list<uint8_t>::iterator i;
   secTypes = security.GetEnabledSecTypes();
@@ -346,6 +344,8 @@ bool SConnection::accessCheck(AccessRights ar) const
 void SConnection::setEncodings(int nEncodings, const int32_t* encodings)
 {
   int i;
+  bool firstFence, firstContinuousUpdates, firstLEDState,
+       firstQEMUKeyEvent, firstExtMouseButtonsEvent;
 
   preferredEncoding = encodingRaw;
   for (i = 0;i < nEncodings;i++) {
@@ -355,7 +355,26 @@ void SConnection::setEncodings(int nEncodings, const int32_t* encodings)
     }
   }
 
-  SMsgHandler::setEncodings(nEncodings, encodings);
+  firstFence = !client.supportsFence();
+  firstContinuousUpdates = !client.supportsContinuousUpdates();
+  firstLEDState = !client.supportsLEDState();
+  firstQEMUKeyEvent = !client.supportsEncoding(pseudoEncodingQEMUKeyEvent);
+  firstExtMouseButtonsEvent = !client.supportsEncoding(pseudoEncodingExtendedMouseButtons);
+
+  client.setEncodings(nEncodings, encodings);
+
+  supportsLocalCursor();
+
+  if (client.supportsFence() && firstFence)
+    supportsFence();
+  if (client.supportsContinuousUpdates() && firstContinuousUpdates)
+    supportsContinuousUpdates();
+  if (client.supportsLEDState() && firstLEDState)
+    supportsLEDState();
+  if (client.supportsEncoding(pseudoEncodingQEMUKeyEvent) && firstQEMUKeyEvent)
+    writer()->writeQEMUKeyEvent();
+  if (client.supportsEncoding(pseudoEncodingExtendedMouseButtons) && firstExtMouseButtonsEvent)
+    writer()->writeExtendedMouseButtonsSupport();
 
   if (client.supportsEncoding(pseudoEncodingExtendedClipboard)) {
     uint32_t sizes[] = { 0 };
@@ -375,7 +394,52 @@ void SConnection::clientCutText(const char* str)
   clientClipboard = str;
   hasRemoteClipboard = true;
 
+  if (!accessCheck(AccessCutText))
+    return;
+
   handleClipboardAnnounce(true);
+}
+
+void SConnection::handleClipboardCaps(uint32_t flags, const uint32_t* lengths)
+{
+  int i;
+
+  vlog.debug("Got client clipboard capabilities:");
+  for (i = 0;i < 16;i++) {
+    if (flags & (1 << i)) {
+      const char *type;
+
+      switch (1 << i) {
+        case clipboardUTF8:
+          type = "Plain text";
+          break;
+        case clipboardRTF:
+          type = "Rich text";
+          break;
+        case clipboardHTML:
+          type = "HTML";
+          break;
+        case clipboardDIB:
+          type = "Images";
+          break;
+        case clipboardFiles:
+          type = "Files";
+          break;
+        default:
+          vlog.debug("    Unknown format 0x%x", 1 << i);
+          continue;
+      }
+
+      if (lengths[i] == 0)
+        vlog.debug("    %s (only notify)", type);
+      else {
+        vlog.debug("    %s (automatically send up to %s)",
+                   type, core::iecPrefix(lengths[i], "B").c_str());
+      }
+    }
+  }
+
+  client.setClipboardCaps(flags, lengths);
 }
 
 void SConnection::handleClipboardRequest(uint32_t flags)
@@ -388,6 +452,8 @@ void SConnection::handleClipboardRequest(uint32_t flags)
     vlog.debug("Ignoring unexpected clipboard request");
     return;
   }
+  if (!accessCheck(AccessCutText))
+    return;
   handleClipboardRequest();
 }
 
@@ -403,10 +469,15 @@ void SConnection::handleClipboardNotify(uint32_t flags)
 
   if (flags & rfb::clipboardUTF8) {
     hasLocalClipboard = false;
+    if (!accessCheck(AccessCutText))
+      return;
     handleClipboardAnnounce(true);
   } else {
+    if (!accessCheck(AccessCutText))
+      return;
     handleClipboardAnnounce(false);
   }
+
 }
 
 void SConnection::handleClipboardProvide(uint32_t flags,
@@ -426,21 +497,26 @@ void SConnection::handleClipboardProvide(uint32_t flags,
   clientClipboard = core::convertLF((const char*)data[0], lengths[0]);
   hasRemoteClipboard = true;
 
+  if (!accessCheck(AccessCutText))
+    return;
+
   // FIXME: Should probably verify that this data was actually requested
   handleClipboardData(clientClipboard.c_str());
 }
 
-void SConnection::supportsQEMUKeyEvent()
+void SConnection::supportsLocalCursor()
 {
-  writer()->writeQEMUKeyEvent();
 }
 
-void SConnection::supportsExtendedMouseButtons()
+void SConnection::supportsFence()
 {
-  writer()->writeExtendedMouseButtonsSupport();
 }
 
-void SConnection::versionReceived()
+void SConnection::supportsContinuousUpdates()
+{
+}
+
+void SConnection::supportsLEDState()
 {
 }
 
@@ -502,7 +578,7 @@ void SConnection::close(const char* /*reason*/)
 
 void SConnection::setPixelFormat(const PixelFormat& pf)
 {
-  SMsgHandler::setPixelFormat(pf);
+  client.setPF(pf);
   readyForSetColourMapEntries = true;
   if (!pf.trueColour)
     writeFakeColourMap();
@@ -551,6 +627,9 @@ void SConnection::handleClipboardData(const char* /*data*/)
 
 void SConnection::requestClipboard()
 {
+  if (!accessCheck(AccessCutText))
+    return;
+
   if (hasRemoteClipboard) {
     handleClipboardData(clientClipboard.c_str());
     return;
@@ -563,6 +642,9 @@ void SConnection::requestClipboard()
 
 void SConnection::announceClipboard(bool available)
 {
+  if (!accessCheck(AccessCutText))
+    return;
+
   hasLocalClipboard = available;
   unsolicitedClipboardAttempt = false;
 
@@ -589,6 +671,9 @@ void SConnection::announceClipboard(bool available)
 
 void SConnection::sendClipboardData(const char* data)
 {
+  if (!accessCheck(AccessCutText))
+    return;
+
   if (client.supportsEncoding(pseudoEncodingExtendedClipboard) &&
       (client.clipboardFlags() & rfb::clipboardProvide)) {
     // FIXME: This conversion magic should be in SMsgWriter
