@@ -36,8 +36,10 @@
 #include <core/LogWriter.h>
 #include <core/Timer.h>
 
+#include <rdr/FdInStream.h>
 #include <rdr/FdOutStream.h>
 
+#include <rfb/UnixPasswordValidator.h>
 #include <rfb/VNCServerST.h>
 
 #include <network/TcpSocket.h>
@@ -334,12 +336,14 @@ int main(int argc, char** argv)
     exit(1);
   }
 
+  const char *displayName = XDisplayName(displayname);
   if (!(dpy = XOpenDisplay(displayname))) {
     // FIXME: Why not vlog.error(...)?
     fprintf(stderr,"%s: Unable to open display \"%s\"\r\n",
-            programName, XDisplayName(displayname));
+            programName, displayName);
     exit(1);
   }
+  rfb::UnixPasswordValidator::setDisplayName(displayName);
 
   signal(SIGHUP, CleanupSignalHandler);
   signal(SIGINT, CleanupSignalHandler);
@@ -358,6 +362,8 @@ int main(int argc, char** argv)
     XDesktop desktop(dpy, &geo);
 
     rfb::VNCServerST server(desktopName, &desktop);
+
+    FileTcpFilter fileTcpFilter(hostsFile);
 
     if (createSystemdListeners(&listeners) > 0) {
       // When systemd is in charge of listeners, do not listen to anything else
@@ -387,7 +393,6 @@ int main(int argc, char** argv)
                   (int)rfbport);
       }
 
-      FileTcpFilter fileTcpFilter(hostsFile);
       if (strlen(hostsFile) != 0)
         for (network::SocketListener* listener : listeners)
           listener->setFilter(&fileTcpFilter);
@@ -420,15 +425,10 @@ int main(int argc, char** argv)
       server.getSockets(&sockets);
       int clients_connected = 0;
       for (i = sockets.begin(); i != sockets.end(); i++) {
-        if ((*i)->isShutdown()) {
-          server.removeSocket(*i);
-          delete (*i);
-        } else {
-          FD_SET((*i)->getFd(), &rfds);
-          if ((*i)->outStream().hasBufferedData())
-            FD_SET((*i)->getFd(), &wfds);
-          clients_connected++;
-        }
+        FD_SET((*i)->getFd(), &rfds);
+        if ((*i)->outStream().hasBufferedData())
+          FD_SET((*i)->getFd(), &wfds);
+        clients_connected++;
       }
 
       if (!clients_connected)
@@ -493,6 +493,29 @@ int main(int argc, char** argv)
           server.processSocketReadEvent(*i);
         if (FD_ISSET((*i)->getFd(), &wfds))
           server.processSocketWriteEvent(*i);
+
+        // Do a graceful close by waiting for the peer to close their
+        // end
+        if ((*i)->isShutdown()) {
+          bool done;
+
+          done = false;
+          while (true) {
+            try {
+              (*i)->inStream().skip((*i)->inStream().avail());
+              if (!(*i)->inStream().hasData(1))
+                break;
+            } catch (std::exception&) {
+              done = true;
+              break;
+            }
+          }
+
+          if (done) {
+            server.removeSocket(*i);
+            delete (*i);
+          }
+        }
       }
 
       if (desktop.isRunning() && sched.goodTimeToPoll()) {

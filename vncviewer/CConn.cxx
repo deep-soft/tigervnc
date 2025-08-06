@@ -30,6 +30,7 @@
 #include <core/LogWriter.h>
 #include <core/Timer.h>
 #include <core/string.h>
+#include <core/time.h>
 
 #include <rdr/FdInStream.h>
 #include <rdr/FdOutStream.h>
@@ -76,12 +77,12 @@ static const rfb::PixelFormat mediumColourPF(8, 8, false, true,
 // Time new bandwidth estimates are weighted against (in ms)
 static const unsigned bpsEstimateWindow = 1000;
 
-CConn::CConn(const char* vncServerName, network::Socket* socket=nullptr)
-  : serverPort(0), desktop(nullptr), updateCount(0), pixelCount(0),
+CConn::CConn()
+  : serverPort(0), sock(nullptr), desktop(nullptr),
+    updateCount(0), pixelCount(0),
     lastServerEncoding((unsigned int)-1), bpsEstimate(20000000)
 {
   setShared(::shared);
-  sock = socket;
 
   supportsLocalCursor = true;
   supportsCursorPosition = true;
@@ -94,6 +95,61 @@ CConn::CConn(const char* vncServerName, network::Socket* socket=nullptr)
   if (!noJpeg)
     setQualityLevel(::qualityLevel);
 
+  OptionsDialog::addCallback(handleOptions, this);
+}
+
+CConn::~CConn()
+{
+  close();
+
+  OptionsDialog::removeCallback(handleOptions);
+  Fl::remove_timeout(handleUpdateTimeout, this);
+
+  if (desktop)
+    delete desktop;
+
+  if (sock) {
+    struct timeval now;
+
+    sock->shutdown();
+
+    // Do a graceful close by waiting for the peer (up to 250 ms)
+    // FIXME: should do this asynchronously
+    gettimeofday(&now, nullptr);
+    while (core::msSince(&now) < 250) {
+      bool done;
+
+      done = false;
+      while (true) {
+        try {
+          sock->inStream().skip(sock->inStream().avail());
+          if (!sock->inStream().hasData(1))
+            break;
+        } catch (std::exception&) {
+          done = true;
+          break;
+        }
+      }
+
+      if (done)
+        break;
+
+  #ifdef WIN32
+      Sleep(10);
+  #else
+      usleep(10000);
+  #endif
+    }
+
+    Fl::remove_fd(sock->getFd());
+
+    delete sock;
+  }
+}
+
+void CConn::connect(const char* vncServerName, network::Socket* socket)
+{
+  sock = socket;
   if(sock == nullptr) {
     try {
 #ifndef WIN32
@@ -124,23 +180,6 @@ CConn::CConn(const char* vncServerName, network::Socket* socket=nullptr)
   setStreams(&sock->inStream(), &sock->outStream());
 
   initialiseProtocol();
-
-  OptionsDialog::addCallback(handleOptions, this);
-}
-
-CConn::~CConn()
-{
-  close();
-
-  OptionsDialog::removeCallback(handleOptions);
-  Fl::remove_timeout(handleUpdateTimeout, this);
-
-  if (desktop)
-    delete desktop;
-
-  if (sock)
-    Fl::remove_fd(sock->getFd());
-  delete sock;
 }
 
 std::string CConn::connectionInfo()
@@ -322,7 +361,7 @@ void CConn::setExtendedDesktopSize(unsigned reason, unsigned result,
 void CConn::setName(const char* name)
 {
   CConnection::setName(name);
-  desktop->setName();
+  desktop->updateCaption();
 }
 
 // framebufferUpdateStart() is called at the beginning of an update.

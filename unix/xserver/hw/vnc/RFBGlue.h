@@ -38,7 +38,6 @@ void vncLogDebug(const char *name, const char *format, ...)
 int vncSetParam(const char *name, const char *value);
 char* vncGetParam(const char *name);
 const char* vncGetParamDesc(const char *name);
-int vncIsParamBool(const char *name);
 
 int vncGetParamCount(void);
 char *vncGetParamList(void);
@@ -55,6 +54,8 @@ char* vncLatin1ToUTF8(const char* src, size_t bytes);
 char* vncUTF8ToLatin1(const char* src, size_t bytes);
 
 int vncIsValidUTF8(const char* str, size_t bytes);
+
+void vncSetDisplayName(const char *displayNumStr);
 
 #ifdef __cplusplus
 }

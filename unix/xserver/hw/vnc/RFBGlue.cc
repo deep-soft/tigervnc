@@ -32,6 +32,8 @@
 
 #include <network/TcpSocket.h>
 
+#include <rfb/UnixPasswordValidator.h>
+
 #include "RFBGlue.h"
 
 // Loggers used by C code must be created here
@@ -132,31 +134,9 @@ const char* vncGetParamDesc(const char *name)
   return param->getDescription();
 }
 
-int vncIsParamBool(const char *name)
-{
-  core::VoidParameter* param;
-  core::BoolParameter* bparam;
-
-  param = core::Configuration::getParam(name);
-  if (param == nullptr)
-    return false;
-
-  bparam = dynamic_cast<core::BoolParameter*>(param);
-  if (bparam == nullptr)
-    return false;
-
-  return true;
-}
-
 int vncGetParamCount(void)
 {
-  int count;
-
-  count = 0;
-  for (core::VoidParameter *param: *core::Configuration::global())
-    count++;
-
-  return count;
+  return core::Configuration::global()->size();
 }
 
 char *vncGetParamList(void)
@@ -255,4 +235,11 @@ int vncIsValidUTF8(const char* str, size_t bytes)
   } catch (...) {
     return 0;
   }
+}
+
+void vncSetDisplayName(const char *displayNumStr)
+{
+  std::string displayName(":");
+  displayName += displayNumStr;
+  rfb::UnixPasswordValidator::setDisplayName(displayName);
 }

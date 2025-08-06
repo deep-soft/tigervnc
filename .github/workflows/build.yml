@@ -22,7 +22,15 @@ jobs:
           sudo apt-get install -y libavcodec-dev libavutil-dev libswscale-dev
           sudo apt-get install -y libgtest-dev
       - name: Configure
-        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_NLS=ON \
+            -DENABLE_H264=ON \
+            -DENABLE_GNUTLS=ON \
+            -DENABLE_NETTLE=ON \
+            -DBUILD_VIEWER=ON \
+            -S . -B build
       - name: Build
         working-directory: build
         run: make
@@ -54,21 +62,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
+        with:
+          update: true
       - name: Install dependencies
         run: |
           pacman --sync --noconfirm --needed \
             make mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
           pacman --sync --noconfirm --needed \
-            mingw-w64-x86_64-libjpeg-turbo \
+            mingw-w64-x86_64-fltk1.3 mingw-w64-x86_64-libjpeg-turbo \
             mingw-w64-x86_64-gnutls mingw-w64-x86_64-pixman \
             mingw-w64-x86_64-nettle mingw-w64-x86_64-gmp \
             mingw-w64-x86_64-gtest
-          # MSYS2 only packages FLTK 1.4 now:
-          # https://github.com/msys2/MINGW-packages/issues/22769
-          pacman --upgrade --noconfirm --needed \
-            https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-fltk-1.3.9-2-any.pkg.tar.zst
       - name: Configure
-        run: cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake \
+            -G "MSYS Makefiles" \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_NLS=ON \
+            -DENABLE_H264=ON \
+            -DENABLE_GNUTLS=ON \
+            -DENABLE_NETTLE=ON \
+            -DBUILD_VIEWER=ON \
+            -S . -B build
       - name: Build
         working-directory: build
         run: make
@@ -105,7 +120,15 @@ jobs:
           brew install googletest
           brew link fltk@1.3
       - name: Configure
-        run: cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+        run: |
+          cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_NLS=ON \
+            -DENABLE_H264=ON \
+            -DENABLE_GNUTLS=ON \
+            -DENABLE_NETTLE=ON \
+            -DBUILD_VIEWER=ON \
+            -S . -B build
       - name: Build
         working-directory: build
         run: make
@@ -115,7 +138,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: build/TigerVNC-*.dmg
+          path: build/release/TigerVNC-*.dmg
       - name: Test
         working-directory: build
         run: ctest --test-dir tests/unit/ --output-junit test-results.xml

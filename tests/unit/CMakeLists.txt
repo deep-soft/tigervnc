@@ -36,11 +36,15 @@ add_executable(pixelformat pixelformat.cxx)
 target_link_libraries(pixelformat rfb GTest::gtest_main)
 gtest_discover_tests(pixelformat)
 
+add_executable(shortcuthandler shortcuthandler.cxx ../../vncviewer/ShortcutHandler.cxx)
+target_link_libraries(shortcuthandler core ${Intl_LIBRARIES} GTest::gtest_main)
+gtest_discover_tests(shortcuthandler)
+
 add_executable(unicode unicode.cxx)
 target_link_libraries(unicode core GTest::gtest_main)
 gtest_discover_tests(unicode)
 
 add_executable(emulatemb emulatemb.cxx ../../vncviewer/EmulateMB.cxx)
-target_include_directories(emulatemb SYSTEM PUBLIC ${GETTEXT_INCLUDE_DIR})
-target_link_libraries(emulatemb core ${GETTEXT_LIBRARIES} GTest::gtest_main)
+target_include_directories(emulatemb SYSTEM PUBLIC ${Intl_INCLUDE_DIR})
+target_link_libraries(emulatemb core ${Intl_LIBRARIES} GTest::gtest_main)
 gtest_discover_tests(emulatemb)

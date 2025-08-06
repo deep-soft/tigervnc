@@ -12,6 +12,7 @@ add_library(rdr STATIC
   TLSException.cxx
   TLSInStream.cxx
   TLSOutStream.cxx
+  TLSSocket.cxx
   ZlibInStream.cxx
   ZlibOutStream.cxx)
 
@@ -27,7 +28,6 @@ endif()
 if (NETTLE_FOUND)
   target_include_directories(rdr SYSTEM PUBLIC ${NETTLE_INCLUDE_DIRS})
   target_link_libraries(rdr ${NETTLE_LIBRARIES})
-  target_link_directories(rdr PUBLIC ${NETTLE_LIBRARY_DIRS})
 endif()
 if(WIN32)
 	target_link_libraries(rdr ws2_32)
