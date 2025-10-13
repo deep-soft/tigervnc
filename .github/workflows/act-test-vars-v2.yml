@@ -18,6 +18,7 @@ env:
 
 jobs:
   program-version:
+    name: program-version
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -96,7 +97,14 @@ jobs:
           echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME    }}"
           echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}"
           echo "VERSION=${{ needs.program-version.outputs.VERSION      }}"
+
+      - name: print name
+        shell: bash
+        run: |
+          echo "job_name=${{ name }}"
+
   build-linux:
+    name: linux
     runs-on: ubuntu-latest
     needs: [program-version]
     timeout-minutes: 10
@@ -141,7 +149,14 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: print name
+        shell: bash
+        run: |
+          echo "job_name=${{ name }}"
+
   build-windows:
+    name: windows
     needs: [program-version]
     runs-on: windows-latest
     timeout-minutes: 20
@@ -186,7 +201,14 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: print name
+        shell: bash
+        run: |
+          echo "job_name=${{ name }}"
+
   build-macos:
+    name: macos
     needs: [program-version]
     runs-on: macos-latest
     timeout-minutes: 20
@@ -231,7 +253,14 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: print name
+        shell: bash
+        run: |
+          echo "job_name=${{ name }}"
+
   build-java:
+    name: java
     needs: [program-version]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -276,7 +305,14 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: print name
+        shell: bash
+        run: |
+          echo "job_name=${{ name }}"
+
   build-packages:
+    name: packages
     needs: [program-version]
     timeout-minutes: 20
     strategy:
@@ -331,3 +367,8 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: print name
+        shell: bash
+        run: |
+          echo "job_name=${{ name }}"
