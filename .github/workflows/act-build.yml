@@ -133,17 +133,42 @@ jobs:
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
 
-      - name: Publish Release
+# source zip - begin
+      - name: SHA256 for source zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ matrix.target }}-${{ env.PROG_VERSION }}.sha256'
+          directory: './'
+          path: ''
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create source zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: "${{ matrix.target }}-${{ env.PROG_VERSION }}"
+          directory: './'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish source zip
         continue-on-error: true
         uses: deep-soft/action-gh-release@v2.1
         with:
-          #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
             _tag_name_.txt
-            ${{ env.ASSET_SRC }}
-            ${{ env.ASSET_SRC1 }}
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# source zip - end
 
   build-linux:
     if: ${{ inputs.build_linux }}
@@ -640,7 +665,7 @@ jobs:
         with:
           type: 'sha256'
           filename: '${{ matrix.target }}-${{ env.PROG_VERSION }}.sha256'
-          directory: './'
+          directory: './_packages/'
           path: ''
           ignore_git: true
           # output env.SHA_SUMS
@@ -651,7 +676,7 @@ jobs:
         with:
           type: 'zip'
           filename: "${{ matrix.target }}-${{ env.PROG_VERSION }}"
-          directory: './'
+          directory: './_packages/'
           exclusions: ''
           recursive_exclusions: ''
           path: '.'
