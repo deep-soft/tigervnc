@@ -573,7 +573,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macOS
+          name: ${{ matrix.job.os }}
           path: build/release/TigerVNC-*.dmg
 
 # Release zip - begin
@@ -590,7 +590,7 @@ jobs:
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.job.os }}.sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.job.os }}.sha256'
           directory: './_packages/'
           path: ''
           ignore_git: true
@@ -601,7 +601,7 @@ jobs:
         uses: deep-soft/zip-release@v3
         with:
           type: 'zip'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.job.os }}'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.job.os }}'
           directory: './_packages/'
           exclusions: ''
           recursive_exclusions: ''
@@ -723,7 +723,7 @@ jobs:
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.${{ matrix.java }}.sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.java }}.sha256'
           directory: './_packages/'
           path: ''
           ignore_git: true
@@ -734,7 +734,7 @@ jobs:
         uses: deep-soft/zip-release@v3
         with:
           type: 'zip'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.java }}'
           directory: './_packages/'
           exclusions: ''
           recursive_exclusions: ''
@@ -853,7 +853,7 @@ jobs:
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ matrix.target }}-${{ env.PROG_VERSION }}.sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.target }}.sha256'
           directory: './_packages/'
           path: ''
           ignore_git: true
@@ -864,7 +864,7 @@ jobs:
         uses: deep-soft/zip-release@v3
         with:
           type: 'zip'
-          filename: "${{ matrix.target }}-${{ env.PROG_VERSION }}"
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.target }}'
           directory: './_packages/'
           exclusions: ''
           recursive_exclusions: ''
