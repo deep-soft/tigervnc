@@ -101,7 +101,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.name }}"
+          echo "job_name=${{ github.job }}"
 
   build-linux:
     name: linux
@@ -153,7 +153,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.name }}"
+          echo "job_name=${{ github.job }}"
 
   build-windows:
     name: windows
@@ -205,7 +205,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.name }}"
+          echo "job_name=${{ github.job }}"
 
   build-macos:
     name: macos
@@ -257,7 +257,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.name }}"
+          echo "job_name=${{ github.job }}"
 
   build-java:
     name: java
@@ -309,7 +309,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.name }}"
+          echo "job_name=${{ github.job }}"
 
   build-packages:
     name: packages
@@ -371,4 +371,4 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.name }}"
+          echo "job_name=${{ github.job }}"
