@@ -1,4 +1,4 @@
-# 2025-10-13 22:00
+# 2025-10-14 00:20
 #
 name: act-Build
 
@@ -277,27 +277,49 @@ jobs:
           name: Linux (Ubuntu)
           path: build/tigervnc-*.tar.gz
 
-      - name: SHA256 for Release files
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp build/tigervnc-*.tar.gz ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
         continue-on-error: true
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}.${{ env.job_name }}.sha256'
-          directory: 'build/'
-          path: 'tigervnc-*.tar.gz'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.sha256'
+          directory: './_packages/'
+          path: ''
           ignore_git: true
           # output env.SHA_SUMS
 
-      - name: Publish Release
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
         continue-on-error: true
         uses: deep-soft/action-gh-release@v2.1
         with:
-          #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            build/tigervnc-*.tar.gz
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
             ${{ env.SHA_SUMS }}
+# Release zip - end
 
   build-windows:
     name: windows
@@ -410,34 +432,63 @@ jobs:
           name: Windows
           path: build/release/tigervnc*.exe
 
-      - name: SHA256 for Release files
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp build/release/tigervnc*.exe ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
         continue-on-error: true
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}.${{ env.job_name }}.sha256'
-          directory: 'build/release/'
-          path: 'tigervnc*.exe'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.sha256'
+          directory: './_packages/'
+          path: ''
           ignore_git: true
           # output env.SHA_SUMS
 
-      - name: Publish Release
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
         continue-on-error: true
         uses: deep-soft/action-gh-release@v2.1
         with:
-          #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            build/release/tigervnc*.exe
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
             ${{ env.SHA_SUMS }}
+# Release zip - end
 
   build-macos:
     name: macos
     if: ${{ inputs.build_macos }}
     needs: [program-version]
-    runs-on: macos-latest
+    runs-on: ${{ matrix.job.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        job: 
+          - { os: macos-13      , arch: x86_64 }
+          - { os: macos-15-intel, arch: x86_64 }
+          - { os: macos-15      , arch: arm64  }
     steps:
       - env:
           TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
@@ -525,28 +576,51 @@ jobs:
           name: macOS
           path: build/release/TigerVNC-*.dmg
 
-      - name: SHA256 for Release files
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp build/release/TigerVNC-*.dmg ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
         continue-on-error: true
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}.${{ env.job_name }}.sha256'
-          directory: 'build/release/'
-          path: 'TigerVNC-*.dmg'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.job.os }}.sha256'
+          directory: './_packages/'
+          path: ''
           ignore_git: true
           # output env.SHA_SUMS
 
-      - name: Publish Release
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.job.os }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
         continue-on-error: true
         uses: deep-soft/action-gh-release@v2.1
         with:
-          #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            build/release/TigerVNC-*.dmg
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
             ${{ env.SHA_SUMS }}
+# Release zip - end
 
+######
   build-java:
     name: java
     if: ${{ inputs.build_java }}
@@ -635,28 +709,51 @@ jobs:
         run: |
           mv java/build/VncViewer.jar java/build/VncViewer-${{ matrix.java }}.jar
 
-      - name: SHA256 for Release files
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp java/build/VncViewer-${{ matrix.java }}.jar ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
         continue-on-error: true
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}.${{ env.job_name }}.${{ matrix.java }}.sha256'
-          directory: 'java/build/'
-          path: 'VncViewer*.jar'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.${{ matrix.java }}.sha256'
+          directory: './_packages/'
+          path: ''
           ignore_git: true
           # output env.SHA_SUMS
 
-      - name: Publish Release
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
         continue-on-error: true
         uses: deep-soft/action-gh-release@v2.1
         with:
-          #tag: ${{github.ref_name}}
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            java/build/VncViewer*.jar
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
             ${{ env.SHA_SUMS }}
+# Release zip - end
 
+####
   build-packages:
     name: packages
     if: ${{ inputs.build_packages }}
