@@ -101,7 +101,8 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ jobs.${{ github.job }}.name }}"
+          github_job=${{ github.job }};
+          echo "job_name=${{ jobs.$github_job.name }}"
 
   build-linux:
     name: linux
