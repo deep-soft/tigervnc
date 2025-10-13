@@ -1,4 +1,4 @@
-# 2025-10-13 16:20
+# 2025-10-13 22:00
 #
 name: act-Build
 
@@ -640,7 +640,7 @@ jobs:
         uses: deep-soft/sha-checksums@v1
         with:
           type: 'sha256'
-          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}.${{ env.job_name }}.sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}.${{ env.job_name }}.${{ matrix.java }}.sha256'
           directory: 'java/build/'
           path: 'VncViewer*.jar'
           ignore_git: true
