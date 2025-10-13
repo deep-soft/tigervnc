@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           github_job=${{ github.job }};
-          github_job_name=jobs.$github_job.name;
+          github_job_name=${(${github_job//-/ )[1]};
           echo "job_name=$github_job_name";
 
   build-linux:
