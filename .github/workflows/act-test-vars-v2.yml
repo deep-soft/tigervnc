@@ -101,7 +101,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ name }}"
+          echo "job_name=${{ jobs.name }}"
 
   build-linux:
     name: linux
@@ -153,7 +153,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ name }}"
+          echo "job_name=${{ jobs.name }}"
 
   build-windows:
     name: windows
@@ -205,7 +205,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ name }}"
+          echo "job_name=${{ jobs.name }}"
 
   build-macos:
     name: macos
@@ -257,7 +257,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ name }}"
+          echo "job_name=${{ jobs.name }}"
 
   build-java:
     name: java
@@ -309,7 +309,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ name }}"
+          echo "job_name=${{ jobs.name }}"
 
   build-packages:
     name: packages
@@ -371,4 +371,4 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ name }}"
+          echo "job_name=${{ jobs.name }}"
