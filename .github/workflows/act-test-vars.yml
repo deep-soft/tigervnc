@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      TAG_NAME:      ${{ steps.set_vars.TAG_NAME     }}
-      TAG_VERSION:   ${{ steps.set_vars.TAG_VERSION  }}
-      TAG_BUILD:     ${{ steps.set_vars.TAG_BUILD    }}
-      TAG_REF:       ${{ steps.set_vars.TAG_REF      }}
-      PROG_NAME:     ${{ steps.set_vars.PROG_NAME    }}
-      PROG_VERSION:  ${{ steps.set_vars.PROG_VERSION }}
-      VERSION:       ${{ steps.set_vars.VERSION      }}
+      TAG_NAME:      ${{ steps.set_vars.outputs.TAG_NAME     }}
+      TAG_VERSION:   ${{ steps.set_vars.outputs.TAG_VERSION  }}
+      TAG_BUILD:     ${{ steps.set_vars.outputs.TAG_BUILD    }}
+      TAG_REF:       ${{ steps.set_vars.outputs.TAG_REF      }}
+      PROG_NAME:     ${{ steps.set_vars.outputs.PROG_NAME    }}
+      PROG_VERSION:  ${{ steps.set_vars.outputs.PROG_VERSION }}
+      VERSION:       ${{ steps.set_vars.outputs.VERSION      }}
       
     steps:
       - name: Checkout
