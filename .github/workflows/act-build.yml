@@ -224,6 +224,12 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Setup msys
+        uses: msys2/setup-msys2@v2
+
       - env:
           TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
           TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
@@ -242,6 +248,7 @@ jobs:
           echo "     VERSION=$VERSION      "
 
       - name: restore ENV from program-version
+        shell: msys2 {0}
         run: |
           echo "restored?"
           echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
@@ -253,6 +260,7 @@ jobs:
           echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
 
       - name: print ENV restored from program-version
+        shell: msys2 {0}
         run: |
           echo "    TAG_NAME=${{ env.TAG_NAME     }}"
           echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
@@ -261,12 +269,6 @@ jobs:
           echo "   PROG_NAME=${{ env.PROG_NAME    }}"
           echo "PROG_VERSION=${{ env.PROG_VERSION }}"
           echo "     VERSION=${{ env.VERSION      }}"
-
-      - name: Checkout
-        uses: deep-soft/checkout@v4
-
-      - name: Setup msys
-        uses: msys2/setup-msys2@v2
 
       - name: Install dependencies
         run: |
