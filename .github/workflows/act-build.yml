@@ -242,7 +242,6 @@ jobs:
           echo "     VERSION=$VERSION      "
 
       - name: restore ENV from program-version
-        shell: bash
         run: |
           echo "restored?"
           echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
@@ -254,7 +253,6 @@ jobs:
           echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
 
       - name: print ENV restored from program-version
-        shell: bash
         run: |
           echo "    TAG_NAME=${{ env.TAG_NAME     }}"
           echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
