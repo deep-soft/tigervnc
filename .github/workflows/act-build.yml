@@ -151,7 +151,7 @@ jobs:
           type: 'sha256'
           filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-src.sha256'
           directory: './'
-          path: ''
+          path: '.'
           ignore_git: true
           # output env.SHA_SUMS
 
@@ -293,7 +293,7 @@ jobs:
           type: 'sha256'
           filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.sha256'
           directory: './_packages/'
-          path: ''
+          path: '.'
           ignore_git: true
           # output env.SHA_SUMS
 
@@ -448,7 +448,7 @@ jobs:
           type: 'sha256'
           filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.sha256'
           directory: './_packages/'
-          path: ''
+          path: '.'
           ignore_git: true
           # output env.SHA_SUMS
 
@@ -592,7 +592,7 @@ jobs:
           type: 'sha256'
           filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.job.os }}.sha256'
           directory: './_packages/'
-          path: ''
+          path: '.'
           ignore_git: true
           # output env.SHA_SUMS
 
@@ -725,7 +725,7 @@ jobs:
           type: 'sha256'
           filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.java }}.sha256'
           directory: './_packages/'
-          path: ''
+          path: '.'
           ignore_git: true
           # output env.SHA_SUMS
 
@@ -855,7 +855,7 @@ jobs:
           type: 'sha256'
           filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.target }}.sha256'
           directory: './_packages/'
-          path: ''
+          path: '.'
           ignore_git: true
           # output env.SHA_SUMS
 
