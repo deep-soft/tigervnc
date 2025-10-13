@@ -630,26 +630,41 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          pushd ./_packages/;
-          echo "before: "
-          ls -la;
-          for file in * do
-            mv $file (${{ matrix.target }})-$file;
-          done
-          echo "after: "
-          ls -la;
-          popd
+          echo "./_packages/: "
+          ls -laR ./_packages/;
 
-      - name: Publish Release
+# Release zip - begin
+      - name: SHA256 for Release zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ matrix.target }}-${{ env.PROG_VERSION }}.sha256'
+          directory: './'
+          path: ''
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: "${{ matrix.target }}-${{ env.PROG_VERSION }}"
+          directory: './'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
         continue-on-error: true
         uses: deep-soft/action-gh-release@v2.1
         with:
-          #tag: ${{github.ref_name}}
-          #allowUpdates: true
-          #.github/containers/${{ matrix.target }}/result/*
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            ./_packages/*
-            ${{ env.ASSET_SRC }}
-            ${{ env.ASSET_SRC1 }}
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# Release zip - end
