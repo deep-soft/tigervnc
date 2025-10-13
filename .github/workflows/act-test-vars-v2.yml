@@ -101,9 +101,10 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          github_job=${{ github.job }};
-          github_job_name_arr=(${github_job//-/ });
-          github_job_name=${github_job_name_arr[1]};
+          # github_job=${{ github.job }};
+          # github_job_name_arr=(${github_job//-/ });
+          # github_job_name=${github_job_name_arr[1]};
+          github_job_name=${(${${{ github.job }}//-/ })[1]};
           echo "job_name=$github_job_name";
 
   build-linux:
