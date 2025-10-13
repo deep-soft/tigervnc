@@ -5,6 +5,33 @@ name: act-Build
 # on: [push, pull_request]
 on:
   workflow_dispatch:
+    inputs:
+      build_linux:
+        description: build linux
+        type: boolean
+        default: true
+        required: true
+      build_windows:
+        description: build windows
+        type: boolean
+        default: true
+        required: true
+      build_macos:
+        description: build macos
+        type: boolean
+        default: true
+        required: true
+      build_java:
+        description: build java
+        type: boolean
+        default: true
+        required: true
+      build_packages:
+        description: build packages (rocky8, rocky9, jammy, noble)
+        type: boolean
+        default: true
+        required: true
+  
 env:
   TAG_NAME:      "TigerVNC"
   TAG_VERSION:   "v1.0.0"
@@ -119,6 +146,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-linux:
+    if: ${{ inputs.build_linux }}
     runs-on: ubuntu-latest
     needs: [program-version]
     timeout-minutes: 10
@@ -217,6 +245,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-windows:
+    if: ${{ inputs.build_windows }}
     needs: [program-version]
     runs-on: windows-latest
     timeout-minutes: 20
@@ -329,6 +358,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-macos:
+    if: ${{ inputs.build_macos }}
     needs: [program-version]
     runs-on: macos-latest
     timeout-minutes: 20
@@ -423,6 +453,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-java:
+    if: ${{ inputs.build_java }}
     needs: [program-version]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -512,6 +543,7 @@ jobs:
             ${{ env.ASSET_SRC1 }}
 
   build-packages:
+    if: ${{ inputs.build_packages }}
     needs: [program-version]
     timeout-minutes: 20
     strategy:
