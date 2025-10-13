@@ -31,6 +31,15 @@ jobs:
       VERSION:       ${{ steps.set_vars.outputs.VERSION      }}
       
     steps:
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
@@ -90,22 +99,18 @@ jobs:
         name: print vars
         shell: bash
         run: |
-          echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME     }}"
-          echo "TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION  }}"
-          echo "TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD    }}"
-          echo "TAG_REF=${{ needs.program-version.outputs.TAG_REF      }}"
-          echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME    }}"
+          echo "    TAG_NAME=${{ needs.program-version.outputs.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ needs.program-version.outputs.TAG_REF      }}"
+          echo "   PROG_NAME=${{ needs.program-version.outputs.PROG_NAME    }}"
           echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}"
-          echo "VERSION=${{ needs.program-version.outputs.VERSION      }}"
+          echo "     VERSION=${{ needs.program-version.outputs.VERSION      }}"
 
       - name: print name
         shell: bash
         run: |
-          github_job=${{ github.job }};
-          # github_job_name_arr=(${github_job//-/ });
-          # github_job_name=${github_job_name_arr[1]};
-          github_job_name=${(${github_job//-/ })[1]};
-          echo "job_name=$github_job_name";
+          echo "job_name=${{ env.job_name }}"
 
   build-linux:
     name: linux
@@ -129,6 +134,16 @@ jobs:
           echo "   PROG_NAME=$PROG_NAME    "
           echo "PROG_VERSION=$PROG_VERSION "
           echo "     VERSION=$VERSION      "
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
@@ -157,7 +172,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ github.job }}"
+          echo "job_name=${{ env.job_name }}"
 
   build-windows:
     name: windows
@@ -181,6 +196,16 @@ jobs:
           echo "   PROG_NAME=$PROG_NAME    "
           echo "PROG_VERSION=$PROG_VERSION "
           echo "     VERSION=$VERSION      "
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
@@ -209,7 +234,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ github.job }}"
+          echo "job_name=${{ env.job_name }}"
 
   build-macos:
     name: macos
@@ -233,6 +258,16 @@ jobs:
           echo "   PROG_NAME=$PROG_NAME    "
           echo "PROG_VERSION=$PROG_VERSION "
           echo "     VERSION=$VERSION      "
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
@@ -261,7 +296,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ github.job }}"
+          echo "job_name=${{ env.job_name }}"
 
   build-java:
     name: java
@@ -285,6 +320,16 @@ jobs:
           echo "   PROG_NAME=$PROG_NAME    "
           echo "PROG_VERSION=$PROG_VERSION "
           echo "     VERSION=$VERSION      "
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
@@ -313,7 +358,7 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ github.job }}"
+          echo "job_name=${{ env.job_name }}"
 
   build-packages:
     name: packages
@@ -347,6 +392,16 @@ jobs:
           echo "   PROG_NAME=$PROG_NAME    "
           echo "PROG_VERSION=$PROG_VERSION "
           echo "     VERSION=$VERSION      "
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
       - name: Checkout
         uses: deep-soft/checkout@v4
 
@@ -375,4 +430,4 @@ jobs:
       - name: print name
         shell: bash
         run: |
-          echo "job_name=${{ github.job }}"
+          echo "job_name=${{ env.job_name }}"
