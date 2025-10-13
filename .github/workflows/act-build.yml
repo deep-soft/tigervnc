@@ -310,7 +310,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: job name
-        shell: msys2 {0}
+        shell: bash
         run: |
           github_job=${{ github.job }};
           github_job_name_arr=(${github_job//-/ });
