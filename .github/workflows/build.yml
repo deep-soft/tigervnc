@@ -20,6 +20,8 @@ jobs:
           sudo apt-get install -y libgnutls28-dev nettle-dev libgmp-dev
           sudo apt-get install -y libxtst-dev libxdamage-dev libxfixes-dev libxrandr-dev libpam-dev
           sudo apt-get install -y libavcodec-dev libavutil-dev libswscale-dev
+          sudo apt-get install -y uuid-dev libglib2.0-dev libpipewire-0.3-dev
+          sudo apt-get install -y libwayland-dev libxkbcommon-dev
           sudo apt-get install -y libgtest-dev
       - name: Configure
         run: |
@@ -73,6 +75,10 @@ jobs:
             mingw-w64-x86_64-gnutls mingw-w64-x86_64-pixman \
             mingw-w64-x86_64-nettle mingw-w64-x86_64-gmp \
             mingw-w64-x86_64-gtest
+      - name: Install InnoSetup
+        shell: pwsh
+        run: |
+          winget install --accept-package-agreements --accept-source-agreements --disable-interactivity --exact --id JRSoftware.InnoSetup
       - name: Configure
         run: |
           cmake \
@@ -91,7 +97,10 @@ jobs:
         working-directory: build
         env:
           MSYS2_PATH_TYPE: inherit
-        run: make installer winvnc_installer
+        run: |
+          INNOPATH="$(cygpath -u "$LOCALAPPDATA\\Programs\\Inno Setup 6")"
+          export PATH="$PATH:$INNOPATH"
+          make installer winvnc_installer
       - uses: actions/upload-artifact@v4
         with:
           name: Windows
@@ -127,6 +136,7 @@ jobs:
             -DENABLE_H264=ON \
             -DENABLE_GNUTLS=ON \
             -DENABLE_NETTLE=ON \
+            -DENABLE_WAYLAND=ON \
             -DBUILD_VIEWER=ON \
             -S . -B build
       - name: Build
@@ -182,7 +192,6 @@ jobs:
         target:
           - rocky8
           - rocky9
-          - focal
           - jammy
           - noble
       fail-fast: false
