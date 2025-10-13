@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           github_job=${{ github.job }};
-          echo "job_name=${{ jobs.$github_job.name }}"
+          echo "job_name=" ${{ jobs.$github_job.name }}
 
   build-linux:
     name: linux
