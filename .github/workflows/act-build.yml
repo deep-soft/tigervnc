@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      TAG_NAME:      ${{ steps.set_vars.TAG_NAME     }}
-      TAG_VERSION:   ${{ steps.set_vars.TAG_VERSION  }}
-      TAG_BUILD:     ${{ steps.set_vars.TAG_BUILD    }}
-      TAG_REF:       ${{ steps.set_vars.TAG_REF      }}
-      PROG_NAME:     ${{ steps.set_vars.PROG_NAME    }}
-      PROG_VERSION:  ${{ steps.set_vars.PROG_VERSION }}
-      VERSION:       ${{ steps.set_vars.VERSION      }}
+      TAG_NAME:      ${{ steps.set_vars.outputs.TAG_NAME     }}
+      TAG_VERSION:   ${{ steps.set_vars.outputs.TAG_VERSION  }}
+      TAG_BUILD:     ${{ steps.set_vars.outputs.TAG_BUILD    }}
+      TAG_REF:       ${{ steps.set_vars.outputs.TAG_REF      }}
+      PROG_NAME:     ${{ steps.set_vars.outputs.PROG_NAME    }}
+      PROG_VERSION:  ${{ steps.set_vars.outputs.PROG_VERSION }}
+      VERSION:       ${{ steps.set_vars.outputs.VERSION      }}
       
     steps:
       - name: Checkout
@@ -87,6 +87,10 @@ jobs:
           echo "PROG_VERSION=${{ env.PROG_VERSION }}" >> "$GITHUB_OUTPUT"
           echo "     VERSION=${{ env.VERSION      }}" >> "$GITHUB_OUTPUT"
           
+      - id: print_vars
+        name: print vars
+        shell: bash
+        run: |
           echo "    TAG_NAME=${{ needs.program-version.outputs.TAG_NAME     }}"
           echo " TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION  }}"
           echo "   TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD    }}"
@@ -422,6 +426,6 @@ jobs:
           draft: ${{ env.DRAFT }}
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            .github/containers/${{ matrix.target }}/result
+            .github/containers/${{ matrix.target }}/result/*
             ${{ env.ASSET_SRC }}
             ${{ env.ASSET_SRC1 }}
