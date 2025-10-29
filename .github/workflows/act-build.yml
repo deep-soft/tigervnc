@@ -397,8 +397,10 @@ jobs:
             mingw-w64-x86_64-gtest
 
       - name: Install InnoSetup
+        continue-on-error: true
         shell: pwsh
         run: |
+          winget source reset --force
           winget install --accept-package-agreements --accept-source-agreements --disable-interactivity --exact --id JRSoftware.InnoSetup
 
       - name: Configure
