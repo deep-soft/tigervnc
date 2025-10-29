@@ -2,6 +2,8 @@
 %global selinuxtype targeted
 %global modulename vncsession
 
+%global xorgversion 21.1.18
+
 Name:           tigervnc
 Version:        @VERSION@
 Release:        1%{?snap:.%{snap}}%{?dist}
@@ -13,7 +15,9 @@ License:        GPLv2+
 URL:            http://www.tigervnc.com
 
 Source0:        %{name}-%{version}%{?snap:-%{snap}}.tar.bz2
-Source3:        10-libvnc.conf
+Source1:        https://xorg.freedesktop.org/releases/individual/xserver/xorg-server-%{xorgversion}.tar.xz
+# Patch from RHEL to avoid dependency on xorg-x11-font-utils
+Source2:        0001-configure.ac-search-for-the-fontrootdir-ourselves.patch
 
 BuildRequires:  make
 BuildRequires:  gcc-c++
@@ -26,13 +30,11 @@ BuildRequires:  zlib-devel
 BuildRequires:  libuuid-devel, glib2-devel, pipewire-devel
 BuildRequires:  wayland-devel, libxkbcommon-devel
 # X11/graphics dependencies
-BuildRequires: xorg-x11-server-source
 BuildRequires: libXext-devel, libX11-devel, libXi-devel, libXfixes-devel
 BuildRequires: libXdamage-devel, libXrandr-devel, libXt-devel, libXdmcp-devel
 BuildRequires: libXinerama-devel, mesa-libGL-devel, libxshmfence-devel
 BuildRequires: pixman-devel, libdrm-devel, mesa-libgbm-devel
 BuildRequires: xorg-x11-util-macros, xorg-x11-xtrans-devel, libXtst-devel
-BuildRequires: xorg-x11-font-utils
 BuildRequires:  libXfont2-devel
 # SELinux
 BuildRequires:  libselinux-devel, selinux-policy-devel
@@ -41,7 +43,6 @@ BuildRequires:  systemd-devel
 # TigerVNC 1.4.x requires fltk 1.3.3 for keyboard handling support
 # See https://github.com/TigerVNC/tigervnc/issues/8, also bug #1208814
 BuildRequires:  fltk-devel >= 1.3.3
-BuildRequires:  xorg-x11-server-devel
 
 Requires:       hicolor-icon-theme
 Requires:       tigervnc-license
@@ -87,15 +88,6 @@ variety of platforms. This package contains minimal installation
 of TigerVNC server, allowing others to access the desktop on your
 machine.
 
-%package server-module
-Summary:        TigerVNC module to Xorg
-Requires:       xorg-x11-server-Xorg %(xserver-sdk-abi-requires ansic) %(xserver-sdk-abi-requires videodrv)
-Requires:       tigervnc-license
-
-%description server-module
-This package contains libvnc.so module to X server, allowing others
-to access the desktop on your machine.
-
 %package license
 Summary:        License of TigerVNC suite
 BuildArch:      noarch
@@ -126,13 +118,14 @@ runs properly under an environment with SELinux enabled.
 %prep
 %setup -q -n %{name}-%{version}%{?snap:-%{snap}}
 
-cp -r /usr/share/xorg-x11-server-source/* unix/xserver
+tar -axf %{SOURCE1}
+cp -r xorg-server-%{xorgversion}/* unix/xserver
 pushd unix/xserver
 for all in `find . -type f -perm -001`; do
         chmod -x "$all"
 done
-xserver_patch="../xserver$(rpm -q --qf '%%{VERSION}' xorg-x11-server-source | awk -F. '{ print $1 $2 }').patch"
-patch -p1 -b --suffix .vnc < "$xserver_patch"
+patch -p1 -b --suffix .fontrootdir < %{SOURCE2}
+patch -p1 -b --suffix .vnc < ../xserver21.patch
 popd
 
 %build
@@ -171,7 +164,7 @@ autoreconf -fiv
         --disable-devel-docs \
         --disable-selective-werror
 
-make %{?_smp_mflags}
+make TIGERVNC_BUILDDIR="`pwd`/../../%{__cmake_builddir}" %{?_smp_mflags}
 popd
 
 # SELinux
@@ -183,7 +176,7 @@ popd
 %cmake_install
 
 pushd unix/xserver/hw/vnc
-%make_install
+%make_install TIGERVNC_BUILDDIR="`pwd`/../../../../%{__cmake_builddir}"
 popd
 
 # Install systemd unit file
@@ -193,11 +186,8 @@ popd
 
 %find_lang %{name} %{name}.lang
 
-# remove unwanted files
-rm -f  %{buildroot}%{_libdir}/xorg/modules/extensions/libvnc.la
-
-mkdir -p %{buildroot}%{_sysconfdir}/X11/xorg.conf.d/
-install -m 644 %{SOURCE3} %{buildroot}%{_sysconfdir}/X11/xorg.conf.d/10-libvnc.conf
+# No Xorg server, so no use for the module
+rm -f  %{buildroot}%{_libdir}/xorg/modules/extensions/libvnc.*
 
 %pre selinux
 %selinux_relabel_pre -s %{selinuxtype}
@@ -246,10 +236,6 @@ fi
 %{_mandir}/man1/Xvnc.1*
 %{_mandir}/man1/vncpasswd.1*
 %{_mandir}/man1/vncconfig.1*
-
-%files server-module
-%{_libdir}/xorg/modules/extensions/libvnc.so
-%config(noreplace) %{_sysconfdir}/X11/xorg.conf.d/10-libvnc.conf
 
 %files license
 %doc %{_docdir}/%{name}/LICENCE.TXT
