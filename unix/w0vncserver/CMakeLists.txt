@@ -23,7 +23,10 @@ add_executable(w0vncserver
   wayland/objects/ScreencopyManager.cxx
   wayland/WaylandDesktop.cxx
   wayland/WaylandPixelBuffer.cxx
+  qnum_to_xorgevdev.c
+  xkb_to_qnum.c
   w0vncserver.cxx
+  parameters.cxx
   GSocketSource.cxx
   RFBTimerSource.cxx
 )
@@ -69,7 +72,7 @@ target_include_directories(w0vncserver SYSTEM PUBLIC ${GOBJECT_INCLUDE_DIRS})
 target_include_directories(w0vncserver SYSTEM PUBLIC ${PIXMAN_INCLUDE_DIRS})
 target_include_directories(w0vncserver SYSTEM PUBLIC ${PIPEWIRE_INCLUDE_DIRS})
 target_include_directories(w0vncserver SYSTEM PUBLIC ${UUID_INCLUDE_DIRS})
-target_include_directories(w0vncserver SYSTEM PUBLIC ${WAYLAND_INCLUDE_DIRS})
+target_include_directories(w0vncserver SYSTEM PUBLIC ${WAYLANDCLIENT_INCLUDE_DIRS})
 target_include_directories(w0vncserver SYSTEM PUBLIC ${XKBCOMMON_INCLUDE_DIRS})
 
 target_link_libraries(w0vncserver core rfb network rdr)
@@ -80,7 +83,7 @@ target_link_libraries(w0vncserver ${PIXMAN_LIBRARIES})
 target_link_libraries(w0vncserver ${PIPEWIRE_LIBRARIES})
 target_link_libraries(w0vncserver ${UUID_LIBRARIES})
 target_link_libraries(w0vncserver ${XKBCOMMON_LIBRARIES})
-target_link_libraries(w0vncserver ${WAYLAND_LIBRARIES})
+target_link_libraries(w0vncserver ${WAYLANDCLIENT_LIBRARIES})
 
 target_link_libraries(w0vncserver-forget core)
 
