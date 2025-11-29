@@ -1,4 +1,4 @@
-# 2025-10-14 00:20
+# 2025-11-29 09:00
 #
 name: act-Build
 
@@ -35,7 +35,7 @@ on:
         default: true
         required: true
       build_packages:
-        description: build packages (rocky8, rocky9, jammy, noble)
+        description: build packages (rocky8, rocky9, rocky10, jammy, noble)
         type: boolean
         default: true
         required: true
@@ -767,6 +767,7 @@ jobs:
         target:
           - rocky8
           - rocky9
+          - rocky10
           - jammy
           - noble
       fail-fast: false
