@@ -1,31 +1,33 @@
-# Czech translation for TigerVNC.
-# Copyright (C) 2018 the TigerVNC Team (msgids)
+# Arabic translation for tigervnc
+# Copyright (C) 2025 TigerVNC Team (msgids)
 # This file is distributed under the same license as the tigervnc package.
-# Petr Pisar <petr.pisar@atlas.cz>, 2018, 2019, 2021, 2022, 2024, 2025.
 #
+# Zayed Al-Saidi <zayed.alsaidi@gmail.com>, 2025.
 msgid ""
 msgstr ""
-"Project-Id-Version: tigervnc 1.15.90\n"
+"Project-Id-Version: tigervnc-1.15.90\n"
 "Report-Msgid-Bugs-To: tigervnc-devel@googlegroups.com\n"
 "POT-Creation-Date: 2025-11-07 10:53+0100\n"
-"PO-Revision-Date: 2025-11-14 10:37+01:00\n"
-"Last-Translator: Petr Pisar <petr.pisar@atlas.cz>\n"
-"Language-Team: Czech <translation-team-cs@lists.sourceforge.net>\n"
-"Language: cs\n"
+"PO-Revision-Date: 2025-11-16 10:56+0400\n"
+"Last-Translator: Zayed Al-Saidi <zayed.alsaidi@gmail.com>\n"
+"Language-Team: Arabic <(nothing)>\n"
+"Language: ar\n"
+"X-Bugs: Report translation errors to the Language-Team address.\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Bugs: Report translation errors to the Language-Team address.\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+"X-Generator: Lokalize 25.07.70\n"
 
 #: vncviewer/CConn.cxx:158
 #, c-format
 msgid "Connected to socket %s"
-msgstr "Připojeno na socket %s"
+msgstr "متّصل بالمقبس %s"
 
 #: vncviewer/CConn.cxx:165
 #, c-format
 msgid "Connected to host %s port %d"
-msgstr "Připojeno na stroj %s port %d"
+msgstr "متّصل بالمضيف %s المنفذ %d"
 
 #: vncviewer/CConn.cxx:170
 #, c-format
@@ -34,63 +36,63 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Připojení k „%s“ selhalo:\n"
+"أخفق الاتصال بـ \"%s\":\n"
 "\n"
 "%s"
 
 #: vncviewer/CConn.cxx:190
 #, c-format
 msgid "Desktop name: %.80s"
-msgstr "Název plochy: %.80s"
+msgstr "اسم سطح المكتب: %.80s"
 
 #: vncviewer/CConn.cxx:193
 #, c-format
 msgid "Host: %.80s port: %d"
-msgstr "Stroj: %.80s port: %d"
+msgstr "المضيف: %.80s المنفذ: %d"
 
 #: vncviewer/CConn.cxx:197
 #, c-format
 msgid "Size: %d x %d"
-msgstr "Velikost: %d×%d"
+msgstr "الحجم: %d × %d"
 
 #: vncviewer/CConn.cxx:204
 #, c-format
 msgid "Pixel format: %s"
-msgstr "Formát pixelu: %s"
+msgstr "صيغة البكسل: %s"
 
 #: vncviewer/CConn.cxx:207
 #, c-format
 msgid "Requested encoding: %s"
-msgstr "Požadované kódování: %s"
+msgstr "الترميز المطلوب: %s"
 
 #: vncviewer/CConn.cxx:211
 #, c-format
 msgid "Last used encoding: %s"
-msgstr "Poslední použité kódování: %s"
+msgstr "آخر ترميز مستخدم: %s"
 
 #: vncviewer/CConn.cxx:215
 #, c-format
 msgid "Line speed estimate: %d kbit/s"
-msgstr "Odhad rychlosti linky: %d kb/s"
+msgstr "تقدير سرعة الخط: %d كيلوبت/ث"
 
 #: vncviewer/CConn.cxx:219
 #, c-format
 msgid "Protocol version: %d.%d"
-msgstr "Verze protokolu: %d.%d"
+msgstr "إصدار البروتوكول: %d.%d"
 
 #: vncviewer/CConn.cxx:223
 #, c-format
 msgid "Security method: %s"
-msgstr "Způsob zabezpečení: %s"
+msgstr "طريقة الأمن: %s"
 
 #: vncviewer/CConn.cxx:284 vncviewer/CConn.cxx:286
 msgid "The connection was dropped by the server before the session could be established."
-msgstr "Spojení bylo serverem zahozeno dříve, než mohla být ustanovena relace."
+msgstr "أسقط الخادم الاتصال قبل أن يترسّخ الجلسة."
 
 #: vncviewer/CConn.cxx:296
 #, c-format
 msgid "Authentication failed: %s"
-msgstr "Autentizace selhala: %s"
+msgstr "أخفق الاستيثاق: %s"
 
 #: vncviewer/CConn.cxx:297
 #, c-format
@@ -99,309 +101,307 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Autentizace u serveru selhala. Server uvedl tento důvod:\n"
+"أخفق الاستيثاق مع الخادم. السبب المعطى من الخادم:\n"
 "\n"
 "%s"
 
 #: vncviewer/CConn.cxx:526
 #, c-format
 msgid "Throughput %d kbit/s - changing to quality %d"
-msgstr "Tok %d kb/S – kvalita se mění na %d"
+msgstr "السعة %d كيلوبت/ث - التغيير إلى الجودة %d"
 
 #: vncviewer/CConn.cxx:557
 #, c-format
 msgid "Throughput %d kbit/s - full color is now enabled"
-msgstr "Tok %d kb/s – plný počet barev je nyní zapnut"
+msgstr "السعة %d كيلوبت/ث - اللون الكامل مفعّل الآن"
 
 #: vncviewer/CConn.cxx:560
 #, c-format
 msgid "Throughput %d kbit/s - full color is now disabled"
-msgstr "Tok %d kb/s – plný počet barev je nyní vypnut"
+msgstr "السعة %d كيلوبت/ث - اللون الكامل معطّل الآن"
 
 #: vncviewer/CConn.cxx:579
 #, c-format
 msgid "Using pixel format %s"
-msgstr "Používá se formát pixelu %s"
+msgstr "يستخدم صيغة البكسل %s"
 
 #: vncviewer/DesktopWindow.cxx:152
 msgid "Invalid geometry specified!"
-msgstr "Zadána neplatná geometrie!"
+msgstr "حددت هندسة غير صالحة!"
 
 #: vncviewer/DesktopWindow.cxx:173
 msgid "Reducing window size to fit on current monitor"
-msgstr "Velikost okna se zmenšuje, aby se vešlo na současný monitor"
+msgstr "تصغير حجم النافذة لتناسب الشاشة الحالية"
 
 #: vncviewer/DesktopWindow.cxx:244
 #, c-format
 msgid "Press %sM to open the context menu"
-msgstr "Kontextovou nabídku otevřete stisknutím %sM"
+msgstr "اضغط %sM لفتح قائمة السياق"
 
 #: vncviewer/DesktopWindow.cxx:312
 #, c-format
 msgid "%s - TigerVNC (keyboard grabbed)"
-msgstr "%s – TigerVNC (klávesnice zabrána)"
+msgstr "%s - TigerVNC (لوحة المفاتيح مقبوضة)"
 
 #: vncviewer/DesktopWindow.cxx:314
 #, c-format
 msgid "%s - TigerVNC"
-msgstr "%s – TigerVNC"
+msgstr "%s - TigerVNC"
 
 #: vncviewer/DesktopWindow.cxx:705
 msgid "Adjusting window size to avoid accidental full-screen request"
-msgstr "Upravuje se velikost okna, by se předešlo nechtěnému požadavku na režim celé obrazovky"
+msgstr "يضبط حجم النافذة لتجنب طلب ملء الشاشة العرضي"
 
 #: vncviewer/DesktopWindow.cxx:915
 #, c-format
 msgid "Press %sEnter to leave full-screen mode"
-msgstr "Stiskněte %sEnter pro opuštění režimu celé obrazovky"
+msgstr "اضغط %sEnter لمغادرة وضع ملء الشاشة"
 
 #: vncviewer/DesktopWindow.cxx:1204 vncviewer/DesktopWindow.cxx:1205
 #: vncviewer/DesktopWindow.cxx:1213 vncviewer/DesktopWindow.cxx:1214
 #: vncviewer/DesktopWindow.cxx:1239 vncviewer/DesktopWindow.cxx:1240
 msgid "Failure grabbing control of the keyboard"
-msgstr "Zabrání ovládání klávesnice se nezdařilo"
+msgstr "إخفاق في قبض التحكم بلوحة المفاتيح"
 
 #: vncviewer/DesktopWindow.cxx:1258
 #, c-format
 msgid "Press %s to release keyboard control from the session"
-msgstr "Pro uvolnění ovládání klávesnice v této relaci stiskněte %s"
+msgstr "اضغط %s لتحرير التحكم بلوحة المفاتيح من الجلسة"
 
 #: vncviewer/DesktopWindow.cxx:1525
 msgid "Invalid screen layout computed for resize request!"
-msgstr "Pro požadavek na změnu velikosti bylo vypočteno neplatné rozložení obrazovky!"
+msgstr "حسب تخطيط شاشة غير صالح لطلب تغيير الحجم!"
 
 #: vncviewer/EmulateMB.cxx:227 vncviewer/EmulateMB.cxx:290
 msgid "Invalid state for 3 button emulation"
-msgstr "Neplatný stav 3-tlačítkové emulace"
+msgstr "حالة غير صالحة لمحاكاة الزر 3"
 
 #: vncviewer/KeyboardWin32.cxx:248
 #, c-format
 msgid "No scan code for extended virtual key 0x%02x"
-msgstr "Žádný scan kód pro rozšířenou virtuální klávesu 0x%02x"
+msgstr "لا يوجد رمز مسح للمفتاح الافتراضي الموسع 0x%02x"
 
 #: vncviewer/KeyboardWin32.cxx:250
 #, c-format
 msgid "No scan code for virtual key 0x%02x"
-msgstr "Žádný scan kód pro virtuální klávesu 0x%02x"
+msgstr "لا رمز مسح للمفتاح الافتراضي 0x%02x"
 
 #: vncviewer/KeyboardWin32.cxx:256
 #, c-format
 msgid "Invalid scan code 0x%02x"
-msgstr "Neplatný scan kód 0x%02x"
+msgstr "رمز مسح غير صالح 0x%02x"
 
 #: vncviewer/KeyboardWin32.cxx:284
 #, c-format
 msgid "No symbol for extended virtual key 0x%02x"
-msgstr "Žádný symbol pro rozšířenou virtuální klávesu 0x%02x"
+msgstr "لا يوجد رمز للمفتاح الافتراضي الموسع 0x%02x"
 
 #: vncviewer/KeyboardWin32.cxx:286
 #, c-format
 msgid "No symbol for virtual key 0x%02x"
-msgstr "Žádný symbol pro virtuální klávesu 0x%02x"
+msgstr "لا يوجد رمز للمفتاح الافتراضي 0x%02x"
 
 #: vncviewer/KeyboardWin32.cxx:553
 #, c-format
 msgid "Failed to update keyboard LED state: %lu"
-msgstr "Aktualizace stavu diod klávesnice se nezdařila: %lu"
+msgstr "أخفق تحديث حالة LED لوحة المفاتيح: %lu"
 
 #: vncviewer/KeyboardX11.cxx:167
 #, c-format
 msgid "No symbol for key code %d (in the current state)"
-msgstr "Žádný symbol pro kód klávesy %d (v současném stavu)"
+msgstr "لا يوجد رمز لرمز المفتاح %d (في الحالة الحالية)"
 
 #: vncviewer/KeyboardX11.cxx:218
 #, c-format
 msgid "Failed to get keyboard LED state: %d"
-msgstr "Získaní stavu diod klávesnice se nezdařilo: %d"
+msgstr "أخفق جلب حالة LED لوحة المفاتيح: %d"
 
 #: vncviewer/KeyboardX11.cxx:263
 msgid "Failed to update keyboard LED state"
-msgstr "Aktualizace stavu diod klávesnice se nezdařila"
+msgstr "أخفق تحديث حالة LED لوحة المفاتيح"
 
 #: vncviewer/MonitorIndicesParameter.cxx:53
 #: vncviewer/MonitorIndicesParameter.cxx:85
 msgid "Failed to get system monitor configuration"
-msgstr "Získání nastavení systémového monitoru selhalo"
+msgstr "أخفق جلب اضبط شاشة النظام"
 
 #: vncviewer/MonitorIndicesParameter.cxx:73
 #, c-format
 msgid "Monitor index %d does not exist"
-msgstr "Monitor číslo %d neexistuje"
+msgstr "فهرس الشاشة %d غير موجود"
 
 #: vncviewer/OptionsDialog.cxx:70
 msgid "TigerVNC options"
-msgstr "Volby TigerVNC"
+msgstr "خيارات TigerVNC"
 
 #: vncviewer/OptionsDialog.cxx:104 vncviewer/ServerDialog.cxx:110
 #: vncviewer/vncviewer.cxx:397
 msgid "Cancel"
-msgstr "Zrušit"
+msgstr "ألغِ"
 
 #: vncviewer/OptionsDialog.cxx:109 vncviewer/vncviewer.cxx:396
 msgid "OK"
-msgstr "OK"
+msgstr "حسنًا"
 
 #: vncviewer/OptionsDialog.cxx:532
 msgid "Compression"
-msgstr "Komprese"
+msgstr "الضغط"
 
 #: vncviewer/OptionsDialog.cxx:549
 msgid "Auto select"
-msgstr "Automaticky vybrat"
+msgstr "اختيار آلي"
 
 #: vncviewer/OptionsDialog.cxx:556
 msgid "Allow JPEG compression"
-msgstr "Povolit kompresi JPEG"
+msgstr "اسمح بضغط JPEG"
 
 #: vncviewer/OptionsDialog.cxx:566
 msgid "Preferred encoding"
-msgstr "Upřednostňované kódování"
+msgstr "الترميز المفضل"
 
 #: vncviewer/OptionsDialog.cxx:634
 msgid "Color level"
-msgstr "Barevnost"
+msgstr "مستوى اللون"
 
-# Attributes for "Color level"
 #: vncviewer/OptionsDialog.cxx:646
 msgid "Full"
-msgstr "Plná"
+msgstr "كامل"
 
 #: vncviewer/OptionsDialog.cxx:653
 msgid "Medium"
-msgstr "Střední"
+msgstr "متوسط"
 
 #: vncviewer/OptionsDialog.cxx:660
 msgid "Low"
-msgstr "Nízká"
+msgstr "منخفض"
 
 #: vncviewer/OptionsDialog.cxx:667
 msgid "Very low"
-msgstr "Velmi nízká"
+msgstr "منخفض جدًا"
 
 #: vncviewer/OptionsDialog.cxx:689
 msgid "Custom compression level"
-msgstr "Uživatelská úroveň komprese"
+msgstr "مستوى ضغط مخصص"
 
 #: vncviewer/OptionsDialog.cxx:702
 msgid "level (0=fast, 9=best)"
-msgstr "úroveň (0 = rychlá, 9 = nejlepší)"
+msgstr "مستوى (0=سريع، 9=أفضل)"
 
 #: vncviewer/OptionsDialog.cxx:721
 msgid "Quality level"
-msgstr "Úroveň kvality"
+msgstr "مستوى الجودة"
 
 #: vncviewer/OptionsDialog.cxx:732
 msgid "quality (0=poor, 9=best)"
-msgstr "kvalita (0 = špatná, 9 = nejlepší)"
+msgstr "جودة (0=ضعيفة، 9=أفضل)"
 
 #: vncviewer/OptionsDialog.cxx:756
 msgid "Security"
-msgstr "Zabezpečení"
+msgstr "الأمن"
 
 #: vncviewer/OptionsDialog.cxx:770
 msgid "Encryption"
-msgstr "Šifrování"
+msgstr "التعمية"
 
-# TODO: Conext for gender
 #: vncviewer/OptionsDialog.cxx:782 vncviewer/OptionsDialog.cxx:849
 msgid "None"
-msgstr "Ne"
+msgstr "لا شيء"
 
 #: vncviewer/OptionsDialog.cxx:789
 msgid "TLS with anonymous certificates"
-msgstr "TLS s anonymními certifikáty"
+msgstr "TLS بشهادات مجهولة"
 
 #: vncviewer/OptionsDialog.cxx:795
 msgid "TLS with X509 certificates"
-msgstr "TLS s certifikáty X509"
+msgstr "TLS بشهادات X509"
 
 #: vncviewer/OptionsDialog.cxx:802
 msgid "Path to X509 CA certificate"
-msgstr "Cesta k X509 certifikátu autority"
+msgstr "مسار لشهادة X509 CA"
 
 #: vncviewer/OptionsDialog.cxx:809
 msgid "Path to X509 CRL file"
-msgstr "Cesta k souboru se seznamem odvolaných certifikátů"
+msgstr "مسار لملف X509 CRL"
 
 #: vncviewer/OptionsDialog.cxx:837
 msgid "Authentication"
-msgstr "Autentizace"
+msgstr "الاستيثاق"
 
 #: vncviewer/OptionsDialog.cxx:855
 msgid "Standard VNC (insecure without encryption)"
-msgstr "Standardní VNC (bez šifrování, nezabezpečené)"
+msgstr "VNC قياسي (غير آمن بدون تعمية)"
 
 #: vncviewer/OptionsDialog.cxx:861
 msgid "Username and password (insecure without encryption)"
-msgstr "Uživatelské jméno a heslo (bez šifrování, nezabezpečené)"
+msgstr "اسم المستخدم وكلمة السر (غير آمن بدون تعمية)"
 
 #: vncviewer/OptionsDialog.cxx:889
 msgid "Input"
-msgstr "Vstup"
+msgstr "الدّخل"
 
 #: vncviewer/OptionsDialog.cxx:902
 msgid "View only (ignore mouse and keyboard)"
-msgstr "Pouze se dívat (ignoruje myš a klávesnici)"
+msgstr "عرض فقط (تجاهل الفأرة ولوحة المفاتيح)"
 
 #: vncviewer/OptionsDialog.cxx:909
 msgid "Mouse"
-msgstr "Myš"
+msgstr "الفأرة"
 
 #: vncviewer/OptionsDialog.cxx:921
 msgid "Emulate middle mouse button"
-msgstr "Emulovat prostřední tlačítko myši"
+msgstr "محاكاة زر الفأرة الأوسط"
 
 #: vncviewer/OptionsDialog.cxx:927
 msgid "Show local cursor when not provided by server"
-msgstr "Zobrazovat místní ukazatel, když sever žádný nedodá"
+msgstr "أظهر المؤشر المحلي عندما لا يوفره الخادم"
 
 #: vncviewer/OptionsDialog.cxx:932
 msgid "Cursor type"
-msgstr "Druh ukazatele"
+msgstr "نوع المؤشر"
 
 #: vncviewer/OptionsDialog.cxx:934
 msgid "Dot"
-msgstr "Puntík"
+msgstr "نقطة"
 
 #: vncviewer/OptionsDialog.cxx:935
 msgid "System"
-msgstr "Systémový"
+msgstr "النظام"
 
 #: vncviewer/OptionsDialog.cxx:955
 msgid "Keyboard"
-msgstr "Klávesnice"
+msgstr "لوحة المفاتيح"
 
 #: vncviewer/OptionsDialog.cxx:966
 msgid "Always send all keyboard input in full screen"
-msgstr "V režimu celé obrazovky vždy odesílat veškerý vstup klávesnice"
+msgstr "أرسل دائمًا كل دخل لوحة المفاتيح في وضع ملء الشاشة"
 
 #: vncviewer/OptionsDialog.cxx:983
 msgid "Clipboard"
-msgstr "Schránka"
+msgstr "الحافظة"
 
 #: vncviewer/OptionsDialog.cxx:995
 msgid "Accept clipboard from server"
-msgstr "Přijímat schránku ze serveru"
+msgstr "اقبل الحافظة من الخادم"
 
 #: vncviewer/OptionsDialog.cxx:1003
 msgid "Also set primary selection"
-msgstr "Rovněž nastavovat primární výběr"
+msgstr "اضبط أيضًا التحديد الأولي"
 
 #: vncviewer/OptionsDialog.cxx:1010
 msgid "Send clipboard to server"
-msgstr "Posílat schránku serveru"
+msgstr "أرسل الحافظة إلى الخادم"
 
 #: vncviewer/OptionsDialog.cxx:1018
 msgid "Send primary selection as clipboard"
-msgstr "Posílat primární výběr jako schránku"
+msgstr "أرسل التحديد الأولي كحافظة"
 
 #: vncviewer/OptionsDialog.cxx:1039
 msgid "Keyboard shortcuts"
-msgstr "Klávesové zkratky"
+msgstr "اختصارات لوحة المفاتيح"
 
 #: vncviewer/OptionsDialog.cxx:1046
 msgid "Modifier keys for keyboard shortcuts:"
-msgstr "Modifikační klávesy pro klávesové zkratky:"
+msgstr "مفاتيح المُعدِّل لاختصارات لوحة المفاتيح:"
 
 #. TRANSLATORS: This refers to the
 #. keyboard key
@@ -434,7 +434,7 @@ msgstr "Win"
 #. TRANSLATORS: This refers to the keyboard key
 #: vncviewer/OptionsDialog.cxx:1089
 msgid "⌃ Ctrl"
-msgstr "^ Ctrl"
+msgstr "⌃ Ctrl"
 
 #. TRANSLATORS: This refers to the keyboard key
 #: vncviewer/OptionsDialog.cxx:1091
@@ -453,92 +453,92 @@ msgstr "⌘ Cmd"
 
 #: vncviewer/OptionsDialog.cxx:1109
 msgid "Display"
-msgstr "Zobrazení"
+msgstr "العرض"
 
 #: vncviewer/OptionsDialog.cxx:1123
 msgid "Display mode"
-msgstr "Režim zobrazení"
+msgstr "نمط العرض"
 
 #: vncviewer/OptionsDialog.cxx:1136
 msgid "Windowed"
-msgstr "V okně"
+msgstr "موضع النافذة"
 
 #: vncviewer/OptionsDialog.cxx:1144
 msgid "Full screen on current monitor"
-msgstr "Přes celou obrazovku současného monitoru"
+msgstr "ملء الشاشة على الشاشة الحالية"
 
 #: vncviewer/OptionsDialog.cxx:1152
 msgid "Full screen on all monitors"
-msgstr "Přes celou obrazovku na všech monitorech"
+msgstr "ملء الشاشة على كل الشاشات"
 
 #: vncviewer/OptionsDialog.cxx:1160
 msgid "Full screen on selected monitor(s)"
-msgstr "Přes celou obrazovku na vybraných monitorech"
+msgstr "ملء الشاشة على الشاشة/الشاشات المختارة"
 
 #: vncviewer/OptionsDialog.cxx:1189
 msgid "Miscellaneous"
-msgstr "Ostatní"
+msgstr "متنوّع"
 
 #: vncviewer/OptionsDialog.cxx:1197
 msgid "Shared (don't disconnect other viewers)"
-msgstr "Sdílené (neodpojit ostatní diváky)"
+msgstr "مشترك (لا تقطع اتصال المشاهدين الآخرين)"
 
 #: vncviewer/OptionsDialog.cxx:1203
 msgid "Ask to reconnect on connection errors"
-msgstr "Při chybách spojení se dotázat na nové"
+msgstr "اسأل لإعادة الاتصال عند أخطاء الاتصال"
 
 #: vncviewer/OptionsDialog.cxx:1310
 msgid "All keyboard shortcuts are disabled."
-msgstr "Všechny klávesové zkratky jsou zakázány."
+msgstr "كل اختصارات لوحة المفاتيح معطّلة."
 
 #: vncviewer/OptionsDialog.cxx:1321
 #, c-format
 msgid "To release keyboard control from the session, press %s."
-msgstr "Pro uvolnění ovládání klávesnice z relace stiskněte %s."
+msgstr "لتحرير التحكم بلوحة المفاتيح من الجلسة، اضغط %s."
 
 #: vncviewer/OptionsDialog.cxx:1326
 #, c-format
 msgid "To pass all keyboard input to the session, press %sG."
-msgstr "Pro předávání veškerého vstupu z klávesnice do relace stiskněte %sG."
+msgstr "لتمرير كل دخل لوحة المفاتيح إلى الجلسة، اضغط %sG."
 
 #: vncviewer/OptionsDialog.cxx:1331
 #, c-format
 msgid "To toggle full-screen mode, press %sEnter."
-msgstr "Pro přepnutí režimu celé obrazovky stiskněte %sEnter."
+msgstr "لتبديل وضع ملء الشاشة، اضغط %sEnter."
 
 #: vncviewer/OptionsDialog.cxx:1335
 #, c-format
 msgid "To open the session context menu, press %sM."
-msgstr "Pro otevření kontextové nabídky relace stiskněte %sM."
+msgstr "لفتح قائمة سياق الجلسة، اضغط %sM."
 
 #: vncviewer/OptionsDialog.cxx:1339
 #, c-format
 msgid "To send a key combination that includes %s directly to the session, press %sSpace, release the space bar without releasing %s, and press the desired key."
-msgstr "Pro předání kombinace kláves, která obsahuje %s, přímo do relace stiskněte %sMezerník, pak uvolněte mezerník, ale držte %s a nakonec k tomu stiskněte požadovanou klávesu."
+msgstr "لإرسال تركيبة مفاتيح تتضمن %s مباشرة إلى الجلسة، اضغط %sSpace، وحرر شريط المسافة بدون تحرير %s، واضغط المفتاح المرغوب."
 
 #: vncviewer/ServerDialog.cxx:74
 msgid "VNC server:"
-msgstr "VNC server:"
+msgstr "خادم VNC:"
 
 #: vncviewer/ServerDialog.cxx:83
 msgid "Options..."
-msgstr "Volby…"
+msgstr "خيارات..."
 
 #: vncviewer/ServerDialog.cxx:87
 msgid "Load..."
-msgstr "Načíst…"
+msgstr "حمّل..."
 
 #: vncviewer/ServerDialog.cxx:91
 msgid "Save as..."
-msgstr "Uložit jako…"
+msgstr "احفظ كَ‍..."
 
 #: vncviewer/ServerDialog.cxx:105
 msgid "About..."
-msgstr "O aplikaci…"
+msgstr "عن..."
 
 #: vncviewer/ServerDialog.cxx:114
 msgid "Connect"
-msgstr "Připojit"
+msgstr "اتّصل"
 
 #: vncviewer/ServerDialog.cxx:146
 #, c-format
@@ -547,17 +547,17 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Historii serverů nelze načíst:\n"
+"لا أستطيع تحميل تاريخ الخادم:\n"
 "\n"
 "%s"
 
 #: vncviewer/ServerDialog.cxx:175 vncviewer/ServerDialog.cxx:215
 msgid "TigerVNC configuration (*.tigervnc)"
-msgstr "Nastavení TigerVNC (*.tigervnc)"
+msgstr "اضبط TigerVNC (*.tigervnc)"
 
 #: vncviewer/ServerDialog.cxx:176
 msgid "Select a TigerVNC configuration file"
-msgstr "Vybrat konfigurační souboru TigerVNC"
+msgstr "اختر ملف اضبط TigerVNC"
 
 #: vncviewer/ServerDialog.cxx:198 vncviewer/vncviewer.cxx:517
 #, c-format
@@ -566,26 +566,26 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Zadaný konfigurační soubor nelze načíst:\n"
+"لا أستطيع تحميل ملف الضبط المحدد:\n"
 "\n"
 "%s"
 
 #: vncviewer/ServerDialog.cxx:216
 msgid "Save the TigerVNC configuration to file"
-msgstr "Uložit nastavení TigerVNC do souboru"
+msgstr "احفظ اضبط TigerVNC في ملف"
 
 #: vncviewer/ServerDialog.cxx:242
 #, c-format
 msgid "%s already exists. Do you want to overwrite?"
-msgstr "%s již existuje. Chcete přepsat?"
+msgstr "%s موجود مسبقًا. أريد أن استبدل؟"
 
 #: vncviewer/ServerDialog.cxx:243 vncviewer/vncviewer.cxx:394
 msgid "No"
-msgstr "Ne"
+msgstr "لا"
 
 #: vncviewer/ServerDialog.cxx:243
 msgid "Overwrite"
-msgstr "Přepsat"
+msgstr "استبدل"
 
 #: vncviewer/ServerDialog.cxx:259
 #, c-format
@@ -594,7 +594,7 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Zadaný konfigurační soubor nezle uložit:\n"
+"لا أستطيع حفظ ملف الضبط المحدد:\n"
 "\n"
 "%s"
 
@@ -605,7 +605,7 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Výchozí nastavení nelze uložit:\n"
+"لا أستطيع حفظ اضبط مبدئي:\n"
 "\n"
 "%s"
 
@@ -616,20 +616,20 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Historii serverů nelze uložit:\n"
+"لا أستطيع حفظ تاريخ الخادم:\n"
 "\n"
 "%s"
 
 #: vncviewer/ServerDialog.cxx:351 vncviewer/ServerDialog.cxx:433
 #: vncviewer/vncviewer.cxx:580
 msgid "Could not determine VNC state directory path"
-msgstr "Cestu ke stavovému adresáři VNC nebylo možné určit"
+msgstr "لا أستطيع تحديد مسار دليل حالة VNC"
 
 #: vncviewer/ServerDialog.cxx:364 vncviewer/ServerDialog.cxx:441
 #: vncviewer/parameters.cxx:758 vncviewer/parameters.cxx:838
 #, c-format
 msgid "Could not open \"%s\""
-msgstr "„%s“ nebylo možné otevřít"
+msgstr "لا أستطيع فتح \"%s\""
 
 #: vncviewer/ServerDialog.cxx:379 vncviewer/ServerDialog.cxx:388
 #: vncviewer/parameters.cxx:852 vncviewer/parameters.cxx:859
@@ -637,39 +637,39 @@ msgstr "„%s“ nebylo možné otevřít"
 #: vncviewer/parameters.cxx:937
 #, c-format
 msgid "Failed to read line %d in file \"%s\""
-msgstr "Přečtení řádku %d v souboru „%s“ selhalo"
+msgstr "أخفق قراءة السطر %d في الملف \"%s\""
 
 #: vncviewer/ServerDialog.cxx:392 vncviewer/parameters.cxx:863
 msgid "Line too long"
-msgstr "Příliš dlouhý řádek"
+msgstr "السطر طويل جدًا"
 
 #: vncviewer/UserDialog.cxx:130
 msgid "Opening password file failed"
-msgstr "Otevření souboru s heslem selhalo"
+msgstr "أخفق فتح ملف كلمة السر"
 
 #: vncviewer/UserDialog.cxx:150
 msgid "VNC authentication"
-msgstr "Autentizace VNC"
+msgstr "استيثاق VNC"
 
 #: vncviewer/UserDialog.cxx:157
 msgid "This connection is secure"
-msgstr "Toto spojení je zabezpečené"
+msgstr "هذا الاتصال آمن"
 
 #: vncviewer/UserDialog.cxx:161
 msgid "This connection is not secure"
-msgstr "Toto spojení není zabezpečené"
+msgstr "هذا الاتصال غير آمن"
 
 #: vncviewer/UserDialog.cxx:183
 msgid "Username:"
-msgstr "Jméno:"
+msgstr "اسم المستخدم:"
 
 #: vncviewer/UserDialog.cxx:196
 msgid "Password:"
-msgstr "Heslo:"
+msgstr "كلمة السر:"
 
 #: vncviewer/UserDialog.cxx:204
 msgid "Keep password for reconnect"
-msgstr "Zapamatovat heslo pro případ obnovení spojení"
+msgstr "احتفظ بكلمة السر لإعادة الاتصال"
 
 #: vncviewer/Viewport.cxx:767 vncviewer/Viewport.cxx:846
 #: vncviewer/vncviewer.cxx:157
@@ -679,29 +679,29 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Při komunikaci se serverem došlo k neočekávané chybě:\n"
+"وقع خطأ غير متوقع عند الاتصال بالخادم:\n"
 "\n"
 "%s"
 
 #: vncviewer/Viewport.cxx:905
 msgctxt "ContextMenu|"
 msgid "Disconn&ect"
-msgstr "Od&pojit"
+msgstr "ا&قطع الاتصال"
 
 #: vncviewer/Viewport.cxx:908
 msgctxt "ContextMenu|"
 msgid "&Full screen"
-msgstr "Přes celou o&brazovku"
+msgstr "&ملء الشاشة"
 
 #: vncviewer/Viewport.cxx:911
 msgctxt "ContextMenu|"
 msgid "Minimi&ze"
-msgstr "Minimali&zovat"
+msgstr "&صغّر"
 
 #: vncviewer/Viewport.cxx:913
 msgctxt "ContextMenu|"
 msgid "Resize &window to session"
-msgstr "Přizpůsobit &velikost okna relaci"
+msgstr "غيّر حجم &النافذة ليناسب الجلسة"
 
 #: vncviewer/Viewport.cxx:918
 msgctxt "ContextMenu|"
@@ -716,75 +716,75 @@ msgstr "&Alt"
 #: vncviewer/Viewport.cxx:925
 msgctxt "ContextMenu|"
 msgid "Send Ctrl-Alt-&Del"
-msgstr "Poslat Ctrl-Alt-&Del"
+msgstr "أرسل Ctrl-Alt-&Del"
 
 #: vncviewer/Viewport.cxx:928
 msgctxt "ContextMenu|"
 msgid "&Refresh screen"
-msgstr "Obnovit ob&razovku"
+msgstr "&حدّث الشاشة"
 
 #: vncviewer/Viewport.cxx:931
 msgctxt "ContextMenu|"
 msgid "&Options..."
-msgstr "V&olby…"
+msgstr "&خيارات..."
 
 #: vncviewer/Viewport.cxx:933
 msgctxt "ContextMenu|"
 msgid "Connection &info..."
-msgstr "Úda&je o spojení…"
+msgstr "معلومات &الاتصال..."
 
 #: vncviewer/Viewport.cxx:935
 msgctxt "ContextMenu|"
 msgid "About &TigerVNC..."
-msgstr "O &TigerVNC…"
+msgstr "عن &TigerVNC..."
 
 #: vncviewer/Viewport.cxx:1027
 msgid "VNC connection info"
-msgstr "Údaje o spojení VNC"
+msgstr "معلومات اتصال VNC"
 
 #: vncviewer/Win32TouchHandler.cxx:46
 msgid "Window is registered for touch instead of gestures"
-msgstr "Okno je registrováno k dotykům namísto ke gestům"
+msgstr "النافذة مسجلة للمس بدلًا من الإيماءات"
 
 #: vncviewer/Win32TouchHandler.cxx:81
 #, c-format
 msgid "Failed to set gesture configuration (error 0x%x)"
-msgstr "Nastavení gest selhalo (chyba 0x%x)"
+msgstr "أخفق ضبط تشكيلة الإيماءة (الخطأ 0x%x)"
 
 #: vncviewer/Win32TouchHandler.cxx:93
 #, c-format
 msgid "Failed to get gesture information (error 0x%x)"
-msgstr "Získání údajů o gestech selhalo (chyba 0x%x)"
+msgstr "أخفق جلب معلومات الإيماءة (الخطأ 0x%x)"
 
 #: vncviewer/Win32TouchHandler.cxx:361
 #, c-format
 msgid "Invalid mouse button %d, must be a number between 1 and 7."
-msgstr "Neplatné číslo tlačítka myši %d. Musí se jednat o číslo mezi 1 a 7."
+msgstr "زر فأرة غير صالح %d، لابد أن رقمًا بين 1 و 7."
 
 #: vncviewer/Win32TouchHandler.cxx:426
 #, c-format
 msgid "Unhandled key 0x%x - can't generate keyboard event."
-msgstr "Neobsluhovaná klávesa 0x%x – nelze vytvořit událost klávesnice."
+msgstr "مفتاح غير معالج 0x%x - لا يمكن توليد حدث لوحة المفاتيح."
 
 #: vncviewer/XInputTouchHandler.cxx:103 vncviewer/touch.cxx:107
 #, c-format
 msgid "Unable to get X Input 2 event mask for window 0x%08lx"
-msgstr "Masku událostí X Input 2 pro okno 0x%08lx nelze získat"
+msgstr "لا أستطيع جلب قناع حدث X Input 2 للنافذة 0x%08lx"
 
 #: vncviewer/XInputTouchHandler.cxx:105
 #, c-format
 msgid "Window 0x%08lx has no X Input 2 event mask"
-msgstr "Okno 0x%08lx nemá žádnou masku událostí X Input 2"
+msgstr "لا يوجد قناع حدث X Input 2 للنافذة 0x%08lx"
 
 #: vncviewer/XInputTouchHandler.cxx:113 vncviewer/touch.cxx:114
 #, c-format
 msgid "Window 0x%08lx has more than one X Input 2 event mask"
-msgstr "Okno 0x%08lx má více než jednu masku událostí X Input 2"
+msgstr "النافذة 0x%08lx فيها أكثر من قناع حدث X Input 2"
 
 #: vncviewer/XInputTouchHandler.cxx:144
 #, c-format
 msgid "Failure grabbing device %i"
-msgstr "Zabrání zařízení %i se nezdařilo"
+msgstr "إخفاق في قبض الجهاز %i"
 
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:13
 #: vncviewer/vncviewer.desktop.in.in:2
@@ -794,145 +794,145 @@ msgstr "TigerVNC"
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:14
 #: vncviewer/vncviewer.desktop.in.in:4
 msgid "Connect to VNC server and display remote desktop"
-msgstr "Připojí se k severu VNC a zobrazí vzdálenou plochu"
+msgstr "اتّصل بخادم VNC واعرض سطح المكتب البعيد"
 
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:17
 msgid "Virtual Network Computing (VNC) is a remote display system that allows you to view and interact with a virtual desktop environment running on another computer on the network. Using VNC, you can run graphical applications on a remote machine and send only the display from these applications to your local device. This package contains a client which will enable you to connect to other desktops running a VNC server. VNC is platform-independent and supports various operating systems and architectures as both servers and clients."
-msgstr "Virtual Network Computing (VNC) je systém vzdáleného displeje, který umožňuje přes síť zobrazit a ovládat virtuální desktopové prostředí běžící na jiném počítači. Pomocí VNC můžete spouštět grafické aplikace na vzdáleném stroji a poslat výstup těchto aplikací na vaše místní zařízení. Tento balík obsahuje klient, který umožňuje se připojit na jiné desktopové prostředí provozující VNC server. VNC je platformě nezávislé a podporuje celou řadu operačních systémů a architektur, jak na straně serveru, tak na straně klientu."
+msgstr "الحوسبة الشبكية الافتراضية (VNC) نظام عرض بعيد يتيح لك مشاهدة بيئة سطح المكتب الافتراضي المتشغل على حاسوب آخر في الشبكة والتفاعل معها. باستخدام VNC، يمكنك تشغيل تطبيقات رسومية على حاسوب بعيد وإرسال العرض من هذه التطبيقات إلى جهازك المحلي فقط. هذه الحزمة تحتوي على عميل يمكنه الاتصال بأسطح مكاتب أخرى تشغل خادم VNC. VNC مستقل عن المنصة ويدعم نظم تشغيل ومعماربات مختلفة كخوادم وعملاء."
 
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:23
 msgid "TigerVNC is a high-speed version of VNC based on the RealVNC 4 and X.org code bases. TigerVNC started as a next-generation development effort for TightVNC on Unix and Linux platforms, but it split from its parent project in early 2009 so that TightVNC could focus on Windows platforms. TigerVNC supports a variant of Tight encoding that is greatly accelerated by the use of the libjpeg-turbo JPEG codec."
-msgstr "TigerVNC je vysokorychlostní verze VNC založená na kódu RealVNC 4 a X.org. TigerVNC začalo jako úsilí o vývoj nové generace TightVNC pro Unix a Linux, ale na počátku roku 2009 se oddělilo od rodičovského projektu, aby se TightVNC mohlo soustředit na platformu Windows. TigerVNC podporuje variantu kódování Tight, která je značně urychlena použitím libjpeg-turbo, kodéru a dekodéru formátu JPEG."
+msgstr "TigerVNC إصدار عالي السرعة من VNC يستند إلى قواعد شفرة RealVNC 4 و X.org. بدأ TigerVNC كمجهود تطوير للجيل القادم لـ TightVNC على منصات Unix و Linux، لكنه انفصل عن مشروعه الأم في أوائل 2009 لتركيز TightVNC على منصات Windows. يدعم TigerVNC متغيرًا من ترميز Tight تسارعت بدرجة كبيرة باستخدام مرمّز libjpeg-turbo JPEG."
 
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:33
 msgid "TigerVNC connection to a CentOS machine"
-msgstr "Spojení TigerVNC ke stroji s CentOS"
+msgstr "اتصال TigerVNC بجهاز سنت أوس"
 
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:37
 msgid "TigerVNC connection to a macOS machine"
-msgstr "Spojení TigerVNC ke stroji s macOS"
+msgstr "اتصال TigerVNC بجهاز ماك أوس"
 
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:41
 msgid "TigerVNC connection to a Windows machine"
-msgstr "Spojení TigerVNC ke stroji s Windows"
+msgstr "اتصال TigerVNC بجهاز ويندوز"
 
 #. developer_name tag deprecated with Appstream 1.0
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:46
 #: vncviewer/org.tigervnc.vncviewer.metainfo.xml.in:48
 msgid "The TigerVNC team"
-msgstr "Tým TigerVNC"
+msgstr "فريق TigerVNC"
 
 #: vncviewer/parameters.cxx:386 vncviewer/parameters.cxx:411
 #: vncviewer/parameters.cxx:428 vncviewer/parameters.cxx:468
 #: vncviewer/parameters.cxx:488
 msgid "The name of the parameter is too large"
-msgstr "Název parametru je příliš dlouhý"
+msgstr "اسم المعلمة كبير جدًا"
 
 #: vncviewer/parameters.cxx:390 vncviewer/parameters.cxx:395
 #: vncviewer/parameters.cxx:446
 msgid "The parameter is too large"
-msgstr "Parametr je příliš dlouhý"
+msgstr "المعلمة كبيرة جدًا"
 
 #: vncviewer/parameters.cxx:453 vncviewer/parameters.cxx:797
 #: vncviewer/parameters.cxx:909
 msgid "Invalid format or too large value"
-msgstr "Neplatný formát nebo příliš velká hodnota"
+msgstr "صيغة غير صالحة أو قيمة كبيرة جدًا"
 
 #: vncviewer/parameters.cxx:508 vncviewer/parameters.cxx:541
 msgid "Failed to create registry key"
-msgstr "Vytvoření klíče v registru selhalo"
+msgstr "أخفق إنشاء مفتاح السجل"
 
 #: vncviewer/parameters.cxx:529 vncviewer/parameters.cxx:602
 #: vncviewer/parameters.cxx:646 vncviewer/parameters.cxx:724
 msgid "Failed to close registry key"
-msgstr "Uzavření klíče v registru selhalo"
+msgstr "أخفق إغلاق مفتاح السجل"
 
 #: vncviewer/parameters.cxx:548 vncviewer/parameters.cxx:581
 #: vncviewer/parameters.cxx:766 vncviewer/parameters.cxx:778
 #, c-format
 msgid "Failed to save \"%s\": %s"
-msgstr "Uložení „%s“ selhalo: %s"
+msgstr "أخفق حفظ \"%s\": %s"
 
 #: vncviewer/parameters.cxx:561 vncviewer/parameters.cxx:595
 #, c-format
 msgid "Failed to remove \"%s\": %s"
-msgstr "Odstranění „%s“ selhalo: %s"
+msgstr "أخفق إزالة \"%s\": %s"
 
 #: vncviewer/parameters.cxx:619 vncviewer/parameters.cxx:697
 msgid "Failed to open registry key"
-msgstr "Otevření klíče v registru selhalo"
+msgstr "أخفق فتح مفتاح السجل"
 
 #: vncviewer/parameters.cxx:636
 #, c-format
 msgid "Failed to read server history entry %d: %s"
-msgstr "Položku historie serverů %d se nepodařilo přečíst: %s"
+msgstr "أخفق قراءة مدخل تاريخ الخادم %d: %s"
 
 #: vncviewer/parameters.cxx:678 vncviewer/parameters.cxx:708
 #, c-format
 msgid "Failed to read parameter \"%s\": %s"
-msgstr "Přečtení parametru „%s“ selhalo: %s"
+msgstr "أخفق قراءة المعلمة \"%s\": %s"
 
 #: vncviewer/parameters.cxx:747 vncviewer/parameters.cxx:825
 #: vncviewer/vncviewer.cxx:546
 msgid "Could not determine VNC config directory path"
-msgstr "Cestu ke konfiguračnímu adresáři VNC nebylo možné určit"
+msgstr "لا أستطيع تحديد مسار دليل ضبط VNC"
 
 #: vncviewer/parameters.cxx:767 vncviewer/parameters.cxx:779
 msgid "Could not encode parameter"
-msgstr "Parametr nebylo možné zakódovat"
+msgstr "لا أستطيع ترميز المعلمة"
 
 #: vncviewer/parameters.cxx:873
 #, c-format
 msgid "Configuration file %s is in an invalid format"
-msgstr "Konfigurační soubor %s je v neplatném formátu"
+msgstr "ملف الضبط %s بصيغة غير صالحة"
 
 #: vncviewer/parameters.cxx:896
 msgid "Invalid format"
-msgstr "Neplatný formát"
+msgstr "صيغة غير صالحة"
 
 #: vncviewer/parameters.cxx:940
 msgid "Unknown parameter"
-msgstr "Neznámý parametr"
+msgstr "معلمة غير معروفة"
 
 #: vncviewer/touch.cxx:75
 #, c-format
 msgid "Got message (0x%x) for an unhandled window"
-msgstr "Obdržena zpráva (0x%x) pro neobsluhované okno"
+msgstr "رسالة واردة (0x%x) لنافذة غير معالجة"
 
 #: vncviewer/touch.cxx:138 vncviewer/touch.cxx:160
 #, c-format
 msgid "Invalid window 0x%08lx specified for pointer grab"
-msgstr "Pro zabrání ukazatele byl zadáno neplatné okno 0x%08lx"
+msgstr "حددت نافذة غير صالحة 0x%08lx لقاء قبض المؤشر"
 
 #: vncviewer/touch.cxx:183 vncviewer/touch.cxx:184
 #, c-format
 msgid "Failed to create touch handler: %s"
-msgstr "Obsluhu dotyků se nepodařilo vytvořit: %s"
+msgstr "أخفق إنشاء معالج اللمس: %s"
 
 #: vncviewer/touch.cxx:188
 #, c-format
 msgid "Couldn't attach event handler to window (error 0x%x)"
-msgstr "K oknu nebylo možné připojit obsluhu událostí (chyba 0x%x)"
+msgstr "لا أستطيع إرفاق معالج الحدث بالنافذة (الخطأ 0x%x)"
 
 #: vncviewer/touch.cxx:215
 msgid "Failed to get event data for X Input event"
-msgstr "Z události X Input nebylo možné získat data události"
+msgstr "أخفق جلب بيانات الحدث لحدث X Input"
 
 #: vncviewer/touch.cxx:228
 msgid "X Input event for unknown window"
-msgstr "Událost X Input pro neznámé okno"
+msgstr "حدث X Input لنافذة غير معروفة"
 
 #: vncviewer/touch.cxx:254
 msgid "X Input extension not available."
-msgstr "Rozšíření X Input není dostupné."
+msgstr "امتداد X Input غير متاح."
 
 #: vncviewer/touch.cxx:261
 msgid "X Input 2 (or newer) is not available."
-msgstr "Rozšíření X Input 2 (nebo novější) není dostupné."
+msgstr "X Input 2 (أو أحدث) غير متاح."
 
 #: vncviewer/touch.cxx:266
 msgid "X Input 2.2 (or newer) is not available. Touch gestures will not be supported."
-msgstr "Rozšíření X Input 2.2 (nebo novější) není dostupné. Dotyková gesta nebudou podporována."
+msgstr "X Input 2.2 (أو أحدث) غير متاح. لا دعم لإيماءات اللمس."
 
 #: vncviewer/vncviewer.cxx:103
 #, c-format
@@ -943,17 +943,17 @@ msgid ""
 "See https://www.tigervnc.org for information on TigerVNC."
 msgstr ""
 "TigerVNC v%s\n"
-"Sestaven v: %s\n"
-"Copyright © 1999–%d tým TigerVNC a mnozí další (vizte README.rst)\n"
-"Podrobnosti o TigerVNC naleznete na <https://www.tigervnc.org/>."
+"بني على: %s\n"
+"حقوق النشر (C) 1999-%d لفريق TigerVNC والعديد من الآخرين (انظر README.rst)\n"
+"انظر https://www.tigervnc.org لمعلومات عن TigerVNC."
 
 #: vncviewer/vncviewer.cxx:173
 msgid "About TigerVNC"
-msgstr "O TigerVNC"
+msgstr "عن TigerVNC"
 
 #: vncviewer/vncviewer.cxx:195
 msgid "Internal FLTK error. Exiting."
-msgstr "Vnitřní chyba FLTK. Končí se."
+msgstr "خطأ FLTK داخلي. يغلق."
 
 #: vncviewer/vncviewer.cxx:214
 #, c-format
@@ -964,59 +964,59 @@ msgid ""
 msgstr ""
 "%s\n"
 "\n"
-"Zkusit se znovu připojit?"
+"هل تريد محاولة إعادة الاتصال؟"
 
 #: vncviewer/vncviewer.cxx:245 vncviewer/vncviewer.cxx:257
 #, c-format
 msgid "Error starting new connection: %s"
-msgstr "Chyba při zahajování nového spojení: %s"
+msgstr "خطأ عند بدء اتصال جديد: %s"
 
 #: vncviewer/vncviewer.cxx:266
 #, c-format
 msgid "Termination signal %d has been received. TigerVNC will now exit."
-msgstr "Byl přijat ukončovací signál %d. TigerVNC se nyní ukončí."
+msgstr "رسالة إنهاء %d واردة. TigerVNC سيغلق الآن."
 
 #: vncviewer/vncviewer.cxx:395
 msgid "Yes"
-msgstr "Ano"
+msgstr "نعم"
 
 #: vncviewer/vncviewer.cxx:398
 msgid "Close"
-msgstr "Zavřít"
+msgstr "أغلق"
 
 #: vncviewer/vncviewer.cxx:403
 msgid "About"
-msgstr "O aplikaci"
+msgstr "عن"
 
 #: vncviewer/vncviewer.cxx:406
 msgid "Hide"
-msgstr "Skrýt"
+msgstr "أخفِ"
 
 #: vncviewer/vncviewer.cxx:409
 msgid "Quit"
-msgstr "Ukončit"
+msgstr "أنهِ"
 
 #: vncviewer/vncviewer.cxx:413
 msgid "Services"
-msgstr "Služby"
+msgstr "الخدمات"
 
 #: vncviewer/vncviewer.cxx:414
 msgid "Hide others"
-msgstr "Skrýt ostatní"
+msgstr "أخفِ الآخرين"
 
 #: vncviewer/vncviewer.cxx:415
 msgid "Show all"
-msgstr "Ukázat všechny"
+msgstr "أظهر الكلّ"
 
 #: vncviewer/vncviewer.cxx:424
 msgctxt "SysMenu|"
 msgid "&File"
-msgstr "&Soubor"
+msgstr "&ملف"
 
 #: vncviewer/vncviewer.cxx:427
 msgctxt "SysMenu|File|"
 msgid "&New Connection"
-msgstr "&Nové spojení"
+msgstr "ا&تصال جديد"
 
 #: vncviewer/vncviewer.cxx:450
 #, c-format
@@ -1029,11 +1029,11 @@ msgid ""
 "       %s [parameters] [.tigervnc file]\n"
 msgstr ""
 "\n"
-"Usage: %s [parametry] [stroj][:číslo_displeje]\n"
-"       %s [parametry] [stroj][::port]\n"
-"       %s [parametry] [unixový_socket]\n"
-"       %s [parametry] -listen [port]\n"
-"       %s [parametry] [soubor_.tigervnc]\n"
+"الاستخدام: %s [معلمات] [مضيف][:رقم_العرض]\n"
+"       %s [معلمات] [مضيف][::منفذ]\n"
+"       %s [معلمات] [مقبس يونكس]\n"
+"       %s [معلمات] -استمع [منفذ]\n"
+"       %s [معلمات] [ملف .tigervnc]\n"
 
 #: vncviewer/vncviewer.cxx:465
 #, c-format
@@ -1046,11 +1046,11 @@ msgid ""
 "                       man page for details.\n"
 msgstr ""
 "\n"
-"Přepínače:\n"
+"الخيارات:\n"
 "\n"
-"  -display displej    − Určuje displej X pro okno prohlížeče\n"
-"  -geometry geometrie − Počáteční umístění hlavního okna TigerVNC. Pro\n"
-"                        podrobnosti nahlédněte to manuálu.\n"
+"  -display Xdisplay  - يحدد عرض X لنافذة العارض\n"
+"  -geometry geometry - موضع مبدئي لنافذة TigerVNC الرئيسية. انظر\n"
+"                       صفحة man للتفاصيل.\n"
 
 #: vncviewer/vncviewer.cxx:472
 #, c-format
@@ -1063,78 +1063,77 @@ msgid ""
 "\n"
 msgstr ""
 "\n"
-"Parametry lze zapnout pomocí -<parametr> a vypnout pomocí -<parametr>=0.\n"
-"Parametry, které mají hodnotu, lze zadat jako -<parametr> <hodnota>.\n"
-"Další možné zápisy jsou <parametr>=<hodnota>, -<parametr>=<hodnota> a\n"
-"--<parametr>=<hodnota>.\n"
-"Názvy parametrů nerozlišují velikost písmen. Parametry jsou:\n"
+"يمكن تشغيل المعلمات بـ -<معلمة> أو إيقاف تشغيلها بـ -<معلمة>=0\n"
+"المعلمات التي تأخذ قيمة يمكن تحديدها كـ -<معلمة> <قيمة>\n"
+"الأشكال الصالحة الأخرى هي <معلمة>=<قيمة> -<معلمة>=<قيمة> --<معلمة>=<قيمة>\n"
+"أسماء المعلمات غير حساسة لحالة الأحرف. المعلمات هي:\n"
 "\n"
 
 #: vncviewer/vncviewer.cxx:527
 msgid "FullScreenAllMonitors is deprecated, set FullScreenMode to 'all' instead"
-msgstr "Volba FullScreenAllMonitors je zastaralá, místo ní nastavte FullScreenMode na „all“"
+msgstr "FullScreenAllMonitors مهجور، اضبط FullScreenMode على 'all' بدلًا من ذلك"
 
 #: vncviewer/vncviewer.cxx:532
 msgid "DotWhenNoCursor is deprecated, set AlwaysCursor to 1 and CursorType to 'Dot' instead"
-msgstr "DotWhenNoCursor je zastaralý, místo toho nastavte AlwaysCursor na 1 a CursorType na „Dot“"
+msgstr "DotWhenNoCursor مهجور، اضبط AlwaysCursor على 1 و CursorType على 'Dot' بدلًا من ذلك"
 
 #: vncviewer/vncviewer.cxx:553
 msgid "~/.vnc is deprecated, please consult 'man vncviewer' for paths to migrate to."
-msgstr "Cesta ~/.vnc je zastaralá. Cestu, kam přejít, naleznete popsanou v „man vncviewer“."
+msgstr "~/.vnc مهجور، يرجى استشارة 'man vncviewer' لمسارات الهجرة."
 
 #: vncviewer/vncviewer.cxx:557
 #, c-format
 msgid "%%APPDATA%%\\vnc is deprecated, please switch to the %%APPDATA%%\\TigerVNC location."
-msgstr "Cesta %%APPDATA%%\\vnc je zastaralá. Prosím, cestu změňte na %%APPDATA%%\\TigerVNC."
+msgstr "%%APPDATA%%\\vnc مهجور، يرجى التحويل إلى موقع %%APPDATA%%\\TigerVNC."
 
 #: vncviewer/vncviewer.cxx:562
 #, c-format
 msgid "Could not create VNC config directory \"%s\": %s"
-msgstr "Nebylo možné vytvořit konfigurační adresář pro VNC „%s“: %s"
+msgstr "لا أستطيع إنشاء دليل ضبط VNC \"%s\": %s"
 
 #: vncviewer/vncviewer.cxx:568
 msgid "Could not determine VNC data directory path"
-msgstr "Nebylo možné určit datový adresář pro VNC"
+msgstr "لا أستطيع تحديد مسار دليل بيانات VNC"
 
 #: vncviewer/vncviewer.cxx:574
 #, c-format
 msgid "Could not create VNC data directory \"%s\": %s"
-msgstr "Nebylo možné vytvořit datový adresář pro VNC „%s“: %s"
+msgstr "لا أستطيع إنشاء دليل بيانات VNC \"%s\": %s"
 
 #: vncviewer/vncviewer.cxx:586
 #, c-format
 msgid "Could not create VNC state directory \"%s\": %s"
-msgstr "Nebylo možné vytvořit stavový adresář pro VNC „%s“: %s"
+msgstr "لا أستطيع إنشاء دليل حالة VNC \"%s\": %s"
 
 #: vncviewer/vncviewer.cxx:705
 #, c-format
 msgid "%s: Unrecognized option '%s'\n"
-msgstr "%s: Nerozpoznaný přepínač „%s\n"
+msgstr "%s: خيار غير معروف '%s'\n"
 
 #: vncviewer/vncviewer.cxx:707 vncviewer/vncviewer.cxx:715
 #, c-format
 msgid "See '%s --help' for more information.\n"
-msgstr "Podrobnosti získáte příkazem „%s --help“.\n"
+msgstr "انظر '%s --help' لمزيد من المعلومات.\n"
 
 #: vncviewer/vncviewer.cxx:714
 #, c-format
 msgid "%s: Extra argument '%s'\n"
-msgstr "%s: Nadbytečný argument „%s“\n"
+msgstr "%s: وسيط إضافي '%s'\n"
 
 #. TRANSLATORS: "Parameters" are command line arguments, or settings
 #. from a file or the Windows registry.
 #: vncviewer/vncviewer.cxx:750 vncviewer/vncviewer.cxx:751
 msgid "Parameters -listen and -via are incompatible"
-msgstr "Parametry -listen a -via se vzájemně vylučují"
+msgstr "المعلمتان -listen و -via غير متوافقتين"
 
 #: vncviewer/vncviewer.cxx:765
 msgid "Unable to listen for incoming connections"
-msgstr "Nelze začít čekat na příchozí spojení"
+msgstr "لا أستطيع الاستماع للاتصالات الواردة"
 
 #: vncviewer/vncviewer.cxx:767
 #, c-format
 msgid "Listening on port %d"
-msgstr "Poslouchá se na portu %d"
+msgstr "يستمع على المنفذ %d"
 
 #: vncviewer/vncviewer.cxx:796
 #, c-format
@@ -1143,7 +1142,7 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Chyba při čekání na příchozí spojení VNC:\n"
+"أخفق انتظار اتصال VNC وارد:\n"
 "\n"
 "%s"
 
@@ -1154,160 +1153,10 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Sestavení šifrovaného tunelu se nezdařilo:\n"
+"أخفق إعداد نفق معمم:\n"
 "\n"
 "%s"
 
 #: vncviewer/vncviewer.desktop.in.in:3
 msgid "Remote desktop viewer"
-msgstr "Prohlížeč vzdálené plochy"
-
-#, c-format
-#~ msgid "(server default %s)"
-#~ msgstr "(výchozí serveru %s)"
-
-#, c-format
-#~ msgid "SetDesktopSize failed: %d"
-#~ msgstr "Požadavek SetDesktopSize selhal: %d"
-
-#~ msgid "Invalid SetColourMapEntries from server!"
-#~ msgstr "Neplatná zpráva SetColourMapEntries od serveru!"
-
-#, c-format
-#~ msgid "Invalid configuration specified for %s"
-#~ msgstr "Zadáno neplatné nastavení pro %s"
-
-#, c-format
-#~ msgid "Invalid monitor index '%s'"
-#~ msgstr "Neplatné číslo monitoru „%s“"
-
-#, c-format
-#~ msgid "Unexpected character '%c'"
-#~ msgstr "Nečekaný znak „%c“"
-
-#~ msgid "Pass system keys directly to server (full screen)"
-#~ msgstr "Předávat systémové klávesy přímo serveru (režim celé obrazovky)"
-
-#~ msgid "Menu key"
-#~ msgstr "Klávesa pro vyvolání nabídky"
-
-#~ msgid "VNC viewer: Connection details"
-#~ msgstr "Prohlížeč VNC: Podrobnosti o připojení"
-
-#, c-format
-#~ msgctxt "ContextMenu|"
-#~ msgid "Send %s"
-#~ msgstr "Poslat %s"
-
-#~ msgid "TigerVNC viewer"
-#~ msgstr "Prohlížeč TigerVNC"
-
-#~ msgid "Show dot when no cursor"
-#~ msgstr "Zobrazovat puntík, když chybí kurzor"
-
-#, c-format
-#~ msgid "Failed to update keyboard LED state: %d"
-#~ msgstr "Aktualizace stavu diod klávesnice se nezdařila: %d"
-
-#~ msgid "No key code specified on key press"
-#~ msgstr "Při stisku klávesy nebyl zadán žádný kód klávesy"
-
-#, c-format
-#~ msgid "No symbol for key code 0x%02x (in the current state)"
-#~ msgstr "Žádný symbol pro kód klávesy 0x%02x (v současném stavu)"
-
-#~ msgid "Unknown parameter type"
-#~ msgstr "Neznámý typ parametru"
-
-#~ msgid "VNC Viewer: Connection Options"
-#~ msgstr "Prohlížeč VNC: Volby připojení"
-
-#~ msgid "Misc."
-#~ msgstr "Ostatní"
-
-#~ msgid "Failed to get monitor name because X11 RandR could not be found"
-#~ msgstr "Nebylo možné získat název monitoru, protože rozšíření X11 RandR nebylo nalezeno"
-
-#~ msgid "Failed to get information about CRTC %d"
-#~ msgstr "Získání údajů o CRTC %d selhalo"
-
-#~ msgid "Failed to get information about output %d for CRTC %d"
-#~ msgstr "Získání údajů o výstupu %d pro CRTC %d selhalo"
-
-#~ msgid "Screen"
-#~ msgstr "Obrazovka"
-
-#~ msgid "Resize remote session on connect"
-#~ msgstr "Při připojení změnit velikost vzdálené relace"
-
-#~ msgid "Resize remote session to the local window"
-#~ msgstr "Změnit velikost vzdálené relace na velikost místního okna"
-
-#~ msgid "Enable full-screen"
-#~ msgstr "Povolit režim celé obrazovky"
-
-#~ msgid "Full (all available colors)"
-#~ msgstr "Plná (všechny dostupné barvy)"
-
-#~ msgid "Medium (256 colors)"
-#~ msgstr "Střední (256 barev)"
-
-#~ msgid "Low (64 colors)"
-#~ msgstr "Nízká (64 barev)"
-
-#~ msgid "Very low (8 colors)"
-#~ msgstr "Velmi nízká (8 barev)"
-
-#~ msgid "level (1=fast, 6=best [4-6 are rarely useful])"
-#~ msgstr "úroveň (1=rychlá, 6=nejlepší [4–6 jsou málo kdy užitečné])"
-
-#~ msgid "Full-screen mode"
-#~ msgstr "Režim celé obrazovky"
-
-#~ msgctxt "ContextMenu|"
-#~ msgid "E&xit viewer"
-#~ msgstr "&Ukončit prohlížeč"
-
-#~ msgctxt "ContextMenu|"
-#~ msgid "Dismiss &menu"
-#~ msgstr "Schovat &nabídku"
-
-#~ msgid "Failed to write parameter %s of type %s to the registry: %ld"
-#~ msgstr "Zápis parametru %s typu %s do registru selhal: %ld"
-
-#~ msgid "The name of the parameter %s was too large to read from the registry"
-#~ msgstr "Název parametru %s byl příliš dlouhý na přečtení z registru"
-
-#~ msgid "The parameter %s was too large to read from the registry"
-#~ msgstr "Parametr %s byl příliš dlouhý na přečtení z registru"
-
-#~ msgid "Failed to write configuration file, can't obtain home directory path."
-#~ msgstr "Zapsaní konfiguračního souboru selhalo, nelze získat cestu k domovskému adresáři."
-
-#~ msgid "Failed to write configuration file, can't open %s: %s"
-#~ msgstr "Zapsání konfiguračního souboru selhalo, %s nelze otevřít: %s"
-
-#~ msgid "Failed to read configuration file, can't obtain home directory path."
-#~ msgstr "Přečtení konfiguračního souboru selhalo, nelze získat cestu k domovskému adresáři."
-
-#~ msgid "Unknown parameter %s on line %d in file %s"
-#~ msgstr "Neznámý parametr %s na řádku %d v souboru %s"
-
-#~ msgid "Could not create VNC home directory: can't obtain home directory path."
-#~ msgstr "Nebylo možné vytvořit domovský adresář pro VNC: nelze získat cestu k domovskému adresáři."
-
-# This is a proper name of an icon file
-#~ msgid "tigervnc"
-#~ msgstr "tigervnc"
-
-#~ msgid "Enabling continuous updates"
-#~ msgstr "Zapínají se spojité aktualizace"
-
-#~ msgid "disabled"
-#~ msgstr "vypnut"
-
-#~ msgid "enabled"
-#~ msgstr "zapnut"
-
-#~ msgid "Using %s encoding"
-#~ msgstr "Používá se kódování %s"
+msgstr "عارض سطح المكتب البعيد"
