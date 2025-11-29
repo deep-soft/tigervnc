@@ -1,0 +1,886 @@
+# 2025-10-14 00:20
+#
+name: act-Build
+
+# on: [push, pull_request]
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: build type
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+        required: true
+      build_linux:
+        description: build linux
+        type: boolean
+        default: true
+        required: true
+      build_windows:
+        description: build windows
+        type: boolean
+        default: true
+        required: true
+      build_macos:
+        description: build macos
+        type: boolean
+        default: true
+        required: true
+      build_java:
+        description: build java
+        type: boolean
+        default: true
+        required: true
+      build_packages:
+        description: build packages (rocky8, rocky9, jammy, noble)
+        type: boolean
+        default: true
+        required: true
+  
+env:
+  TAG_NAME:      "TigerVNC"
+  TAG_VERSION:   "v1.0.0"
+  TAG_BUILD:     "-b"
+  TAG_REF:       "0000000"
+  PROG_NAME:     "TigerVNC"
+  PROG_VERSION:  "v1.0.0"
+  VERSION:       "1.0.0"
+  DRAFT:         false
+  DEBUG_LS:      "yes"
+
+jobs:
+  program-version:
+    name: program-version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      TAG_NAME:      ${{ steps.set_vars.outputs.TAG_NAME     }}
+      TAG_VERSION:   ${{ steps.set_vars.outputs.TAG_VERSION  }}
+      TAG_BUILD:     ${{ steps.set_vars.outputs.TAG_BUILD    }}
+      TAG_REF:       ${{ steps.set_vars.outputs.TAG_REF      }}
+      PROG_NAME:     ${{ steps.set_vars.outputs.PROG_NAME    }}
+      PROG_VERSION:  ${{ steps.set_vars.outputs.PROG_VERSION }}
+      VERSION:       ${{ steps.set_vars.outputs.VERSION      }}
+      
+    steps:
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+# - get program version begin
+      - name: get program version
+        shell: bash
+        run: |
+          _prog_version_=$(grep "set(VERSION " CMakeLists.txt  | awk '{print $2}' | awk -F")" '{print $1}')
+          echo "VERSION=$_prog_version_" >> $GITHUB_ENV
+          echo "PROG_VERSION=v$_prog_version_" >> $GITHUB_ENV
+          echo "TAG_VERSION=v$_prog_version_" >> $GITHUB_ENV
+
+      - name: print program version
+        shell: bash
+        run: |
+          echo "VERSION=${{ env.VERSION }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "TAG_VERSION=${{ env.TAG_VERSION }}"
+# - get program version begin
+
+# - get ref set build begin
+      - name: Get ref, set build version
+        shell: bash
+        run: |
+          _ref_all_=$(git log -1 --format='%H')
+          # _ref_=$(echo ${_ref_all_::7})
+          _ref_org_=${{ env.TAG_REF }}
+          _ref_len_="${#_ref_org_}"
+          _ref_=$(echo ${_ref_all_::$_ref_len_})
+          echo "TAG_REF=$_ref_" >> $GITHUB_ENV
+          _build_=${{ env.TAG_BUILD }}.$_ref_
+          echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
+          echo "WORK_DIR=$(pwd)" >> $GITHUB_ENV
+          _tag_name_=${{ env.TAG_NAME }}
+          echo "TAG_NAME=$_tag_name_-${{ env.TAG_VERSION }}" >> $GITHUB_ENV
+
+      - name: Print ref, build version
+        shell: bash
+        run: |
+          echo "REF: ${{ env.TAG_REF }}"
+          echo "BLD: ${{ env.TAG_BUILD }}"
+          echo "NAM: ${{ env.TAG_NAME }}"
+          echo "${{ env.TAG_NAME }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+# - get ref set build end
+
+      - id: set_vars
+        name: set vars
+        shell: bash
+        run: |
+          echo "TAG_NAME=${{ env.TAG_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "TAG_VERSION=${{ env.TAG_VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "TAG_BUILD=${{ env.TAG_BUILD }}" >> "$GITHUB_OUTPUT"
+          echo "TAG_REF=${{ env.TAG_REF }}" >> "$GITHUB_OUTPUT"
+          echo "PROG_NAME=${{ env.PROG_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "VERSION=${{ env.VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "TAG_NAME=${{ env.TAG_NAME }}" >> "$GITHUB_ENV"
+          echo "TAG_VERSION=${{ env.TAG_VERSION }}" >> "$GITHUB_ENV"
+          echo "TAG_BUILD=${{ env.TAG_BUILD }}" >> "$GITHUB_ENV"
+          echo "TAG_REF=${{ env.TAG_REF }}" >> "$GITHUB_ENV"
+          echo "PROG_NAME=${{ env.PROG_NAME }}" >> "$GITHUB_ENV"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}" >> "$GITHUB_ENV"
+          echo "VERSION=${{ env.VERSION }}" >> "$GITHUB_ENV"
+          echo "job_name=${{ github.job }}" >> "$GITHUB_ENV"
+          
+      - id: print_vars
+        name: print vars
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
+
+# source zip - begin
+      - name: SHA256 for source zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-src.sha256'
+          directory: './'
+          path: '.'
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create source zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: "${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-src"
+          directory: './'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish source zip
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: ${{ env.DRAFT }}
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            _tag_name_.txt
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# source zip - end
+
+  build-linux:
+    if: ${{ inputs.build_linux }}
+    name: linux
+    runs-on: ubuntu-latest
+    needs: [program-version]
+    timeout-minutes: 10
+    steps:
+      - env:
+          TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program-version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program-version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program-version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program-version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program-version.outputs.VERSION      }}
+        run: |
+          echo "    TAG_NAME=$TAG_NAME     "
+          echo " TAG_VERSION=$TAG_VERSION  "
+          echo "   TAG_BUILD=$TAG_BUILD    "
+          echo "     TAG_REF=$TAG_REF      "
+          echo "   PROG_NAME=$PROG_NAME    "
+          echo "PROG_VERSION=$PROG_VERSION "
+          echo "     VERSION=$VERSION      "
+
+      - name: restore ENV from program-version
+        shell: bash
+        run: |
+          echo "restored?"
+          echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION }}" >> $GITHUB_ENV
+          echo "TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD }}" >> $GITHUB_ENV
+          echo "TAG_REF=${{ needs.program-version.outputs.TAG_REF }}" >> $GITHUB_ENV
+          echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
+
+      - name: print ENV restored from program-version
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfltk1.3-dev fluid gettext appstream
+          sudo apt-get install -y libpixman-1-dev libjpeg-turbo8-dev
+          sudo apt-get install -y libgnutls28-dev nettle-dev libgmp-dev
+          sudo apt-get install -y libxtst-dev libxdamage-dev libxfixes-dev libxrandr-dev libpam-dev
+          sudo apt-get install -y libavcodec-dev libavutil-dev libswscale-dev
+          sudo apt-get install -y uuid-dev libglib2.0-dev libpipewire-0.3-dev
+          sudo apt-get install -y libwayland-dev libxkbcommon-dev
+          sudo apt-get install -y libgtest-dev
+
+      - name: Configure
+        run: |
+          cmake \
+            -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} \
+            -DENABLE_NLS=ON \
+            -DENABLE_H264=ON \
+            -DENABLE_GNUTLS=ON \
+            -DENABLE_NETTLE=ON \
+            -DBUILD_VIEWER=ON \
+            -S . -B build
+
+      - name: Build
+        working-directory: build
+        run: |
+          make
+
+      - name: Install
+        working-directory: build
+        run: |
+          make tarball
+
+      - uses: deep-soft/upload-artifact@v4
+        with:
+          name: Linux (Ubuntu)
+          path: build/tigervnc-*.tar.gz
+
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp build/tigervnc-*.tar.gz ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.sha256'
+          directory: './_packages/'
+          path: '.'
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: ${{ env.DRAFT }}
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# Release zip - end
+
+  build-windows:
+    name: windows
+    if: ${{ inputs.build_windows }}
+    needs: [program-version]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Setup msys
+        uses: msys2/setup-msys2@v2
+
+      - env:
+          TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program-version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program-version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program-version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program-version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program-version.outputs.VERSION      }}
+        run: |
+          echo "    TAG_NAME=$TAG_NAME     "
+          echo " TAG_VERSION=$TAG_VERSION  "
+          echo "   TAG_BUILD=$TAG_BUILD    "
+          echo "     TAG_REF=$TAG_REF      "
+          echo "   PROG_NAME=$PROG_NAME    "
+          echo "PROG_VERSION=$PROG_VERSION "
+          echo "     VERSION=$VERSION      "
+
+      - name: restore ENV from program-version
+        shell: msys2 {0}
+        run: |
+          echo "restored?"
+          echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION }}" >> $GITHUB_ENV
+          echo "TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD }}" >> $GITHUB_ENV
+          echo "TAG_REF=${{ needs.program-version.outputs.TAG_REF }}" >> $GITHUB_ENV
+          echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
+
+      - name: print ENV restored from program-version
+        shell: msys2 {0}
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: Install dependencies
+        run: |
+          pacman --sync --noconfirm --needed \
+            make mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+          pacman --sync --noconfirm --needed \
+            mingw-w64-x86_64-fltk1.3 mingw-w64-x86_64-libjpeg-turbo \
+            mingw-w64-x86_64-gnutls mingw-w64-x86_64-pixman \
+            mingw-w64-x86_64-nettle mingw-w64-x86_64-gmp \
+            mingw-w64-x86_64-gtest
+
+      - name: Install InnoSetup
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          winget source reset --force
+          winget install --accept-package-agreements --accept-source-agreements --disable-interactivity --exact --id JRSoftware.InnoSetup
+
+      - name: Configure
+        run: |
+          cmake \
+            -G "MSYS Makefiles" \
+            -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} \
+            -DENABLE_NLS=ON \
+            -DENABLE_H264=ON \
+            -DENABLE_GNUTLS=ON \
+            -DENABLE_NETTLE=ON \
+            -DBUILD_VIEWER=ON \
+            -S . -B build
+
+      - name: Build
+        working-directory: build
+        run: |
+          make
+
+      - name: Install
+        working-directory: build
+        env:
+          MSYS2_PATH_TYPE: inherit
+        run: |
+          INNOPATH="$(cygpath -u "$LOCALAPPDATA\\Programs\\Inno Setup 6")"
+          export PATH="$PATH:$INNOPATH"
+          make installer winvnc_installer
+
+      - uses: deep-soft/upload-artifact@v4
+        with:
+          name: Windows
+          path: build/release/tigervnc*.exe
+
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp build/release/tigervnc*.exe ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}.sha256'
+          directory: './_packages/'
+          path: '.'
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: ${{ env.DRAFT }}
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# Release zip - end
+
+  build-macos:
+    name: macos
+    if: ${{ inputs.build_macos }}
+    needs: [program-version]
+    runs-on: ${{ matrix.job.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        job: 
+          - { os: macos-13      , arch: x86_64 }
+          - { os: macos-15-intel, arch: x86_64 }
+          - { os: macos-15      , arch: arm64  }
+    steps:
+      - env:
+          TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program-version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program-version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program-version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program-version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program-version.outputs.VERSION      }}
+        run: |
+          echo "    TAG_NAME=$TAG_NAME     "
+          echo " TAG_VERSION=$TAG_VERSION  "
+          echo "   TAG_BUILD=$TAG_BUILD    "
+          echo "     TAG_REF=$TAG_REF      "
+          echo "   PROG_NAME=$PROG_NAME    "
+          echo "PROG_VERSION=$PROG_VERSION "
+          echo "     VERSION=$VERSION      "
+
+      - name: restore ENV from program-version
+        shell: bash
+        run: |
+          echo "restored?"
+          echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION }}" >> $GITHUB_ENV
+          echo "TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD }}" >> $GITHUB_ENV
+          echo "TAG_REF=${{ needs.program-version.outputs.TAG_REF }}" >> $GITHUB_ENV
+          echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
+
+      - name: print ENV restored from program-version
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install fltk@1.3 pixman ffmpeg
+          brew install gnutls nettle gmp
+          brew install googletest
+          brew link fltk@1.3
+
+      - name: Configure
+        run: |
+          cmake \
+            -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} \
+            -DENABLE_NLS=ON \
+            -DENABLE_H264=ON \
+            -DENABLE_GNUTLS=ON \
+            -DENABLE_NETTLE=ON \
+            -DENABLE_WAYLAND=ON \
+            -DBUILD_VIEWER=ON \
+            -S . -B build
+
+      - name: Build
+        working-directory: build
+        run: |
+          make
+
+      - name: Install
+        working-directory: build
+        run: |
+          make dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.job.os }}
+          path: build/release/TigerVNC-*.dmg
+
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp build/release/TigerVNC-*.dmg ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.job.os }}.sha256'
+          directory: './_packages/'
+          path: '.'
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.job.os }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: ${{ env.DRAFT }}
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# Release zip - end
+
+######
+  build-java:
+    name: java
+    if: ${{ inputs.build_java }}
+    needs: [program-version]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        java: [ '8', '11', '17', '21' ]
+    steps:
+      - env:
+          TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program-version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program-version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program-version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program-version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program-version.outputs.VERSION      }}
+        run: |
+          echo "    TAG_NAME=$TAG_NAME     "
+          echo " TAG_VERSION=$TAG_VERSION  "
+          echo "   TAG_BUILD=$TAG_BUILD    "
+          echo "     TAG_REF=$TAG_REF      "
+          echo "   PROG_NAME=$PROG_NAME    "
+          echo "PROG_VERSION=$PROG_VERSION "
+          echo "     VERSION=$VERSION      "
+
+      - name: restore ENV from program-version
+        shell: bash
+        run: |
+          echo "restored?"
+          echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION }}" >> $GITHUB_ENV
+          echo "TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD }}" >> $GITHUB_ENV
+          echo "TAG_REF=${{ needs.program-version.outputs.TAG_REF }}" >> $GITHUB_ENV
+          echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
+
+      - name: print ENV restored from program-version
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: job name
+        shell: bash
+        run: |
+          github_job=${{ github.job }};
+          github_job_name_arr=(${github_job//-/ });
+          github_job_name=${github_job_name_arr[1]};
+          echo "job_name=$github_job_name";
+          echo "job_name=$github_job_name" >> $GITHUB_ENV;
+
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Setup java
+        uses: deep-soft/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: Configure
+        working-directory: java
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} -S . -B build
+
+      - name: Build
+        working-directory: java/build
+        run: |
+          make
+
+      - uses: deep-soft/upload-artifact@v4
+        with:
+          name: Java (${{ matrix.java }})
+          path: java/build/VncViewer.jar
+
+      - name: rename VncViewer.jar
+        shell: bash
+        run: |
+          mv java/build/VncViewer.jar java/build/VncViewer-${{ matrix.java }}.jar
+
+# Release zip - begin
+      - name: Prepare for Release
+        shell: bash
+        run: |
+          mkdir ./_packages/
+          cp java/build/VncViewer-${{ matrix.java }}.jar ./_packages/
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+      - name: SHA256 for Release zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.java }}.sha256'
+          directory: './_packages/'
+          path: '.'
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ env.job_name }}-${{ matrix.java }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: ${{ env.DRAFT }}
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# Release zip - end
+
+####
+  build-packages:
+    name: packages
+    if: ${{ inputs.build_packages }}
+    needs: [program-version]
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        # skip: - centos7, bionic, focal
+        target:
+          - rocky8
+          - rocky9
+          - jammy
+          - noble
+      fail-fast: false
+    runs-on: ubuntu-latest
+    env:
+      DOCKER: ${{ matrix.target }}
+    steps:
+      - env:
+          TAG_NAME:     ${{ needs.program-version.outputs.TAG_NAME     }}
+          TAG_VERSION:  ${{ needs.program-version.outputs.TAG_VERSION  }}
+          TAG_BUILD:    ${{ needs.program-version.outputs.TAG_BUILD    }}
+          TAG_REF:      ${{ needs.program-version.outputs.TAG_REF      }}
+          PROG_NAME:    ${{ needs.program-version.outputs.PROG_NAME    }}
+          PROG_VERSION: ${{ needs.program-version.outputs.PROG_VERSION }}
+          VERSION:      ${{ needs.program-version.outputs.VERSION      }}
+        run: |
+          echo "    TAG_NAME=$TAG_NAME     "
+          echo " TAG_VERSION=$TAG_VERSION  "
+          echo "   TAG_BUILD=$TAG_BUILD    "
+          echo "     TAG_REF=$TAG_REF      "
+          echo "   PROG_NAME=$PROG_NAME    "
+          echo "PROG_VERSION=$PROG_VERSION "
+          echo "     VERSION=$VERSION      "
+
+      - name: restore ENV from program-version
+        shell: bash
+        run: |
+          echo "restored?"
+          echo "TAG_NAME=${{ needs.program-version.outputs.TAG_NAME }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ needs.program-version.outputs.TAG_VERSION }}" >> $GITHUB_ENV
+          echo "TAG_BUILD=${{ needs.program-version.outputs.TAG_BUILD }}" >> $GITHUB_ENV
+          echo "TAG_REF=${{ needs.program-version.outputs.TAG_REF }}" >> $GITHUB_ENV
+          echo "PROG_NAME=${{ needs.program-version.outputs.PROG_NAME }}" >> $GITHUB_ENV
+          echo "PROG_VERSION=${{ needs.program-version.outputs.PROG_VERSION }}" >> $GITHUB_ENV
+          echo "VERSION=${{ needs.program-version.outputs.VERSION }}" >> $GITHUB_ENV
+
+      - name: print ENV restored from program-version
+        shell: bash
+        run: |
+          echo "    TAG_NAME=${{ env.TAG_NAME     }}"
+          echo " TAG_VERSION=${{ env.TAG_VERSION  }}"
+          echo "   TAG_BUILD=${{ env.TAG_BUILD    }}"
+          echo "     TAG_REF=${{ env.TAG_REF      }}"
+          echo "   PROG_NAME=${{ env.PROG_NAME    }}"
+          echo "PROG_VERSION=${{ env.PROG_VERSION }}"
+          echo "     VERSION=${{ env.VERSION      }}"
+
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+
+      - name: Build image
+        run: |
+          docker build -t tigervnc/$DOCKER .github/containers/$DOCKER
+
+      - name: Build packages
+        run: |
+          .github/containers/$DOCKER/build.sh
+
+      - name: Upload artifacts
+        uses: deep-soft/upload-artifact@v4
+        with:
+          name: Packages (${{ matrix.target }})
+          path: .github/containers/${{ matrix.target }}/result
+
+      - name: Prepare for Release 1
+        shell: bash
+        run: |
+          mkdir ./_packages/
+
+      - name: Prepare for Release 2
+        uses: deep-soft/download-artifact@v4
+        with:
+          name: Packages (${{ matrix.target }})
+          path: ./_packages/
+
+      - name: Prepare for Release 3
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "./_packages/: "
+          ls -laR ./_packages/;
+
+# Release zip - begin
+      - name: SHA256 for Release zip
+        continue-on-error: true
+        uses: deep-soft/sha-checksums@v1
+        with:
+          type: 'sha256'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.target }}.sha256'
+          directory: './_packages/'
+          path: '.'
+          ignore_git: true
+          # output env.SHA_SUMS
+
+      - name: Create Release zip
+        continue-on-error: true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ env.PROG_VERSION }}-${{ matrix.target }}'
+          directory: './_packages/'
+          exclusions: ''
+          recursive_exclusions: ''
+          path: '.'
+          env_variable: ZIP_ARCHIVE_RELEASE
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Release zip
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: ${{ env.DRAFT }}
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.SHA_SUMS }}
+# Release zip - end
