@@ -28,10 +28,12 @@
 #include <rfb/VNCServerST.h>
 #include <core/LogWriter.h>
 #include <core/xdgdirs.h>
+#include <core/string.h>
 
 #include "../w0vncserver.h"
 #include "../parameters.h"
 #include "RemoteDesktop.h"
+#include "Clipboard.h"
 #include "PortalProxy.h"
 #include "../pipewire/PipeWirePixelBuffer.h"
 #include "PortalDesktop.h"
@@ -42,14 +44,15 @@ extern const unsigned int code_map_qnum_to_xorgevdev_len;
 static core::LogWriter vlog("PortalDesktop");
 
 PortalDesktop::PortalDesktop()
-  : server(nullptr), remoteDesktop(nullptr), pb(nullptr),
-    restoreToken("")
+  : server(nullptr), remoteDesktop(nullptr), clipboard(nullptr),
+    pb(nullptr), restoreToken(""), clipboardAccess(false)
 {
 }
 
 PortalDesktop::~PortalDesktop()
 {
   delete remoteDesktop;
+  delete clipboard;
 }
 
 void PortalDesktop::init(rfb::VNCServer* vs)
@@ -65,7 +68,8 @@ void PortalDesktop::start()
     try {
       pb = new PipeWirePixelBuffer(fd, id, server);
     } catch (std::exception& e) {
-      fatal_error("error initializing PipeWirePixelBuffer: %s", e.what());
+      server->closeClients(core::format("error initializing PipeWirePixelBuffer: %s",
+                                        e.what()).c_str());
     }
   };
 
@@ -76,7 +80,45 @@ void PortalDesktop::start()
     server->closeClients(reason);
   };
 
-  remoteDesktop = new RemoteDesktop(restoreToken, startPipewire, cancelStart);
+  std::function<void(const char*)> sendClipboardData = [this](const char* data) {
+    server->sendClipboardData(data);
+  };
+
+  std::function<void(bool available)> clipboardAnnounceCb = [this](bool available) {
+    server->announceClipboard(available);
+  };
+
+  std::function<void()> clipboardRequestCb = [this]() {
+    server->requestClipboard();
+  };
+
+  std::function<void()> initClipboard = [this, sendClipboardData,
+                                         clipboardAnnounceCb,
+                                         clipboardRequestCb]() {
+    assert(remoteDesktop);
+
+    clipboard = new Clipboard(remoteDesktop->getSessionHandle(),
+                              sendClipboardData, clipboardAnnounceCb,
+                              clipboardRequestCb);
+    clipboardAccess = true;
+
+    try {
+      clipboard->requestClipboard();
+    } catch (std::exception& e) {
+      vlog.error("Could not get clipboard access");
+      clipboardAccess = false;
+    }
+  };
+
+  std::function<void()> clipboardSubscribe = [this]() {
+    assert(clipboard);
+
+    clipboard->subscribe();
+  };
+
+  remoteDesktop = new RemoteDesktop(restoreToken, startPipewire,
+                                    cancelStart, initClipboard,
+                                    clipboardSubscribe);
   remoteDesktop->createSession();
 }
 
@@ -90,6 +132,10 @@ void PortalDesktop::stop()
   restoreToken = remoteDesktop->getRestoreToken();
   delete remoteDesktop;
   remoteDesktop = nullptr;
+
+  delete clipboard;
+  clipboard = nullptr;
+  clipboardAccess = false;
 }
 
 void PortalDesktop::queryConnection(network::Socket* sock,
@@ -119,19 +165,16 @@ void PortalDesktop::keyEvent(uint32_t keysym, uint32_t keycode, bool down)
   //        xkbcommon keysyms.
   //        Using the Portals for input is not recommended. We should
   //        switch over to using libei entirely instead.
-  if (rawKeyboard) {
+  if (rawKeyboard && (keycode < code_map_qnum_to_xorgevdev_len)) {
     int evdevKeycode;
-
-    if (keycode >= code_map_qnum_to_xorgevdev_len) {
-      vlog.error("Could not map keycode %d to evdev key code", keycode);
+    evdevKeycode = code_map_qnum_to_xorgevdev[keycode];
+    if (evdevKeycode) {
+      remoteDesktop->notifyKeyboardKeycode(evdevKeycode, down);
       return;
     }
-
-    evdevKeycode = code_map_qnum_to_xorgevdev[keycode];
-    remoteDesktop->notifyKeyboardKeycode(evdevKeycode, down);
-  } else {
-    remoteDesktop->notifyKeyboardKeysym(keysym, down);
   }
+
+  remoteDesktop->notifyKeyboardKeysym(keysym, down);
 }
 
 void PortalDesktop::pointerEvent(const core::Point& pos,
@@ -140,6 +183,34 @@ void PortalDesktop::pointerEvent(const core::Point& pos,
   remoteDesktop->notifyPointerMotionAbsolute(pos.x, pos.y, buttonMask);
 }
 
+void PortalDesktop::handleClipboardRequest()
+{
+  if (!remoteDesktop->getClipboardEnabled() || !clipboardAccess)
+    return;
+
+  assert(clipboard);
+
+  clipboard->selectionRead();
+}
+
+void PortalDesktop::handleClipboardAnnounce(bool available)
+{
+  if (!clipboard || !remoteDesktop->getClipboardEnabled() || !clipboardAccess)
+    return;
+
+  if (available)
+    clipboard->setSelection();
+  else
+    clipboard->clearSelection();
+}
+
+void PortalDesktop::handleClipboardData(const char* data)
+{
+  if (!clipboard || !remoteDesktop->getClipboardEnabled() || !clipboardAccess)
+    return;
+
+  clipboard->selectionWrite(data);
+}
 bool PortalDesktop::available()
 {
   std::vector<std::string> interfaces = {

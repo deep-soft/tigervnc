@@ -114,8 +114,17 @@ void TLSSocket::shutdown()
   // FIXME: We can't currently wait for the response, so we only send
   //        our close and hope for the best
   ret = gnutls_bye(session, GNUTLS_SHUT_WR);
-  if ((ret != GNUTLS_E_SUCCESS) && (ret != GNUTLS_E_INVALID_SESSION))
-    vlog.error("TLS shutdown failed: %s", gnutls_strerror(ret));
+  if ((ret != GNUTLS_E_SUCCESS) && (ret != GNUTLS_E_INVALID_SESSION)) {
+    if ((ret == GNUTLS_E_PULL_ERROR) || (ret == GNUTLS_E_PUSH_ERROR)) {
+      try {
+        std::rethrow_exception(saved_exception);
+      } catch (std::exception& e) {
+        vlog.error("TLS shutdown failed: %s", e.what());
+      }
+    } else {
+      vlog.error("TLS shutdown failed: %s", gnutls_strerror(ret));
+    }
+  }
 }
 
 size_t TLSSocket::readTLS(uint8_t* buf, size_t len)
@@ -190,7 +199,6 @@ ssize_t TLSSocket::pull(void* data, size_t size)
     return 0;
   } catch (std::exception& e) {
     core::socket_error* se;
-    vlog.error("Failure reading TLS data: %s", e.what());
     se = dynamic_cast<core::socket_error*>(&e);
     if (se)
       gnutls_transport_set_errno(session, se->err);
@@ -212,7 +220,6 @@ ssize_t TLSSocket::push(const void* data, size_t size)
     out->flush();
   } catch (std::exception& e) {
     core::socket_error* se;
-    vlog.error("Failure sending TLS data: %s", e.what());
     se = dynamic_cast<core::socket_error*>(&e);
     if (se)
       gnutls_transport_set_errno(session, se->err);

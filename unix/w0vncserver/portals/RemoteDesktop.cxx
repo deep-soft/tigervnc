@@ -37,9 +37,11 @@
 #include <core/string.h>
 #include <core/xdgdirs.h>
 
+#include <rfb/KeysymStr.h>
 #include "../w0vncserver.h"
 #include "portalConstants.h"
 #include "RemoteDesktop.h"
+#include "Clipboard.h"
 #include "PortalProxy.h"
 
 // Maximum number of buttons
@@ -59,9 +61,9 @@ core::BoolParameter
               false);
 
 core::EnumParameter
-  askDisplayChoice("AskDisplayChoice",
-                   "Ask which displays to share when user connects (Always, Once, Never)",
-                   {"Always", "Once", "Never"}, "Once");
+  rememberDisplayChoice("RememberDisplayChoice",
+                        "Remember display choice when user connects (Always, Never, Session)",
+                        {"Always", "Never", "Session"}, "Session");
 
 // Sync with w0vncserver-forget
 static const char* RESTORE_TOKEN_FILENAME =  "restoretoken";
@@ -90,12 +92,15 @@ RemoteDesktop::RemoteDesktop(std::string restoreToken_,
                              std::function<void(int fd, uint32_t nodeId)>
                                startPipewireCb_,
                              std::function<void(const char*)>
-                               cancelStartCb_)
+                               cancelStartCb_,
+                             std::function<void()> initClipboardCb_,
+                             std::function<void()> clipboardSubscribeCb_)
   : sessionStarted(false), oldButtonMask(0), selectedDevices(0),
-    sessionHandle(""), remoteDesktop(nullptr), screenCast(nullptr),
-    session(nullptr), restoreToken(restoreToken_),
-    startPipewireCb(startPipewireCb_),
-    cancelStartCb(cancelStartCb_)
+    clipboardEnabled(false), sessionHandle(""), remoteDesktop(nullptr),
+    screenCast(nullptr), session(nullptr), restoreToken(restoreToken_),
+    startPipewireCb(startPipewireCb_), cancelStartCb(cancelStartCb_),
+    initClipboardCb(initClipboardCb_),
+    clipboardSubscribeCb(clipboardSubscribeCb_)
 {
   remoteDesktop = new PortalProxy("org.freedesktop.portal.Desktop",
                                   "/org/freedesktop/portal/desktop",
@@ -127,7 +132,12 @@ void RemoteDesktop::notifyKeyboardKeysym(uint32_t keysym, bool down)
   g_variant_builder_init(&optionsBuilder, G_VARIANT_TYPE("a{sv}"));
   params = g_variant_new("(oa{sv}iu)", sessionHandle.c_str(),
                          &optionsBuilder, keysym, state);
-  remoteDesktop->call("NotifyKeyboardKeysym", params);
+  try {
+    remoteDesktop->call("NotifyKeyboardKeysym", params);
+  } catch (const std::exception& e) {
+    vlog.error("Could not handle keysym XK_%s (0x%04x): %s",
+               KeySymName(keysym), keysym, e.what());
+  }
 }
 
 void RemoteDesktop::notifyKeyboardKeycode(uint32_t keycode, bool down)
@@ -151,7 +161,11 @@ void RemoteDesktop::notifyKeyboardKeycode(uint32_t keycode, bool down)
   g_variant_builder_init(&optionsBuilder, G_VARIANT_TYPE("a{sv}"));
   params = g_variant_new("(oa{sv}iu)", sessionHandle.c_str(),
                          &optionsBuilder, keycode, state);
-  remoteDesktop->call("NotifyKeyboardKeycode", params);
+  try {
+    remoteDesktop->call("NotifyKeyboardKeycode", params);
+  } catch (const std::exception& e) {
+    vlog.error("Could not handle key %d: %s", keycode, e.what());
+  }
 }
 
 void RemoteDesktop::notifyPointerMotionAbsolute(int x, int y,
@@ -168,7 +182,11 @@ void RemoteDesktop::notifyPointerMotionAbsolute(int x, int y,
                          &optionsBuilder, pipewireNodeId,
                          (double)x,(double)y);
 
-  remoteDesktop->call("NotifyPointerMotionAbsolute", params);
+  try {
+    remoteDesktop->call("NotifyPointerMotionAbsolute", params);
+  } catch (const std::exception& e) {
+    vlog.error("Could not move pointer: %s", e.what());
+  }
 
   if (buttonMask == oldButtonMask)
     return;
@@ -198,7 +216,11 @@ void RemoteDesktop::notifyPointerButton(int32_t button, bool down)
   params = g_variant_new("(oa{sv}iu)", sessionHandle.c_str(),
                           &optionsBuilder, button, down);
 
-  remoteDesktop->call("NotifyPointerButton", params);
+  try {
+    remoteDesktop->call("NotifyPointerButton", params);
+  } catch (const std::exception& e) {
+    vlog.error("Could not handle mouse button: %s", e.what());
+  }
 }
 
 void RemoteDesktop::notifyPointerAxisDiscrete(int32_t button)
@@ -236,7 +258,11 @@ void RemoteDesktop::notifyPointerAxisDiscrete(int32_t button)
   params = g_variant_new("(oa{sv}ui)", sessionHandle.c_str(),
                          &optionsBuilder, axis, steps);
 
-  remoteDesktop->call("NotifyPointerAxisDiscrete", params);
+  try {
+    remoteDesktop->call("NotifyPointerAxisDiscrete", params);
+  } catch (const std::exception& e) {
+    vlog.error("Could not handle mouse scroll: %s", e.what());
+  }
 }
 
 void RemoteDesktop::createSession()
@@ -257,16 +283,28 @@ void RemoteDesktop::createSession()
 
   params = g_variant_new("(a{sv})", &optionsBuilder);
 
-  remoteDesktop->call("CreateSession", params,
-                      requestHandleToken.c_str(),
-                      std::bind(&RemoteDesktop::handleCreateSession,
-                                this, std::placeholders::_1));
+  try {
+    remoteDesktop->call("CreateSession", params,
+                        requestHandleToken.c_str(),
+                        std::bind(&RemoteDesktop::handleCreateSession,
+                                  this, std::placeholders::_1));
+  } catch (const std::exception& e) {
+    vlog.error("Could not create session: %s", e.what());
+    cancelStartCb("Failed to start remote desktop session");
+  }
 }
 
 void RemoteDesktop::closeSession()
 {
-  if (session && sessionStarted)
-    session->call("Close", nullptr, nullptr, nullptr);
+  if (session && sessionStarted) {
+    try {
+      session->call("Close", nullptr, nullptr, nullptr);
+    } catch (const std::exception& e) {
+      // This is not necessarily unexpected, as the session can be
+      // closed by the compositor.
+      vlog.info("Could not close session: %s", e.what());
+    }
+  }
 }
 
 void RemoteDesktop::selectDevices()
@@ -281,7 +319,7 @@ void RemoteDesktop::selectDevices()
   g_variant_builder_add(&optionsBuilder, "{sv}", "types",
                         g_variant_new_uint32(DEV_KEYBOARD | DEV_POINTER));
 
-  if (askDisplayChoice != "Always") {
+  if (rememberDisplayChoice != "Never") {
     g_variant_builder_add(&optionsBuilder, "{sv}", "persist_mode",
                           g_variant_new_uint32(PERSIST_UNTIL_REVOKED));
   }
@@ -296,9 +334,14 @@ void RemoteDesktop::selectDevices()
 
   params = g_variant_new("(oa{sv})", sessionHandle.c_str(), &optionsBuilder);
 
-  remoteDesktop->call("SelectDevices", params, requestHandleToken.c_str(),
-                      std::bind(&RemoteDesktop::handleSelectDevices,
-                                this, std::placeholders::_1));
+  try {
+    remoteDesktop->call("SelectDevices", params, requestHandleToken.c_str(),
+                        std::bind(&RemoteDesktop::handleSelectDevices,
+                        this, std::placeholders::_1));
+  } catch (const std::exception& e) {
+    vlog.error("Could not select devices: %s", e.what());
+    cancelStartCb("Failed to start remote desktop session");
+  }
 }
 
 void RemoteDesktop::selectSources()
@@ -326,9 +369,14 @@ void RemoteDesktop::selectSources()
   params = g_variant_new("(oa{sv})", sessionHandle.c_str(),
                          &optionsBuilder);
 
-  screenCast->call("SelectSources", params, requestHandleToken.c_str(),
-                   std::bind(&RemoteDesktop::handleSelectSources,
-                             this, std::placeholders::_1));
+  try {
+    screenCast->call("SelectSources", params, requestHandleToken.c_str(),
+                     std::bind(&RemoteDesktop::handleSelectSources,
+                     this, std::placeholders::_1));
+  } catch (const std::exception& e) {
+    vlog.error("Could not select sources: %s", e.what());
+    cancelStartCb("Failed to start remote desktop session");
+  }
 }
 
 void RemoteDesktop::start()
@@ -345,10 +393,14 @@ void RemoteDesktop::start()
 
   params = g_variant_new("(osa{sv})", sessionHandle.c_str(), "",
                          &optionsBuilder);
-
-  remoteDesktop->call("Start", params, requestHandleToken.c_str(),
-                      std::bind(&RemoteDesktop::handleStart,
-                                this, std::placeholders::_1));
+  try {
+    remoteDesktop->call("Start", params, requestHandleToken.c_str(),
+                        std::bind(&RemoteDesktop::handleStart,
+                        this, std::placeholders::_1));
+  } catch (const std::exception& e) {
+    vlog.error("Could not start session: %s", e.what());
+    cancelStartCb("Failed to start remote desktop session");
+  }
 }
 
 void RemoteDesktop::openPipewireRemote()
@@ -383,25 +435,34 @@ void RemoteDesktop::handleCreateSession(GVariant *parameters)
   assert(sessionHandle.empty());
 
   if (!g_variant_is_of_type(parameters, G_VARIANT_TYPE("(ua{sv})"))) {
-    fatal_error("%s", core::format("RemoteDesktop::handleCreateSession: Unexpected parameters: %s",
-                g_variant_print(parameters, true)).c_str());
+    vlog.error("Could not create session: unexpected parameters: %s",
+               g_variant_print(parameters, true));
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
 
   g_variant_get(parameters, "(u@a{sv})", &response, &result);
 
   if (response == 1)  {
-    cancelStartCb("RemoteDesktop::handleCreateSession(): RemoteDesktop.CreateSession was cancelled");
+    vlog.error("Session was cancelled");
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
   else if (response == 2) {
-    cancelStartCb("RemoteDesktop::handleCreateSession(): RemoteDesktop.CreateSession failed");
+    vlog.error("Failed to create session");
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
 
   sessionHandleVariant = g_variant_lookup_value(result, "session_handle",
                                                 G_VARIANT_TYPE_STRING);
   g_variant_unref(result);
+
+  if (!sessionHandleVariant) {
+    vlog.error("Failed to create session: no session handle");
+    cancelStartCb("Failed to start remote desktop session");
+    return;
+  }
 
   sessionHandle = g_variant_get_string(sessionHandleVariant, nullptr);
   g_variant_unref(sessionHandleVariant);
@@ -418,15 +479,17 @@ void RemoteDesktop::handleStart(GVariant* parameters)
 {
   uint32_t responseCode;
   GVariant* result;
-  GVariant* streams_;
+  GVariant* streams;
   GVariant* devices;
   GVariant* newRestoreToken;
+  GVariant* clipboardEnabled_;
 
   assert(!sessionStarted);
 
   if (!g_variant_is_of_type(parameters, G_VARIANT_TYPE("(ua{sv})"))) {
-    fatal_error("%s", core::format("RemoteDesktop::handleStart: Unexpected parameters %s",
-                                   g_variant_get_type_string(parameters)).c_str());
+    vlog.error("Could not start remote desktop: unexpected parameters %s",
+               g_variant_get_type_string(parameters));
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
 
@@ -434,43 +497,76 @@ void RemoteDesktop::handleStart(GVariant* parameters)
 
   if (responseCode == 1) {
     g_variant_unref(result);
-    cancelStartCb("RemoteDesktop::handleStart(): Local user denied the connection.");
+    vlog.error("Could not start remote desktop - local user denied the connection.");
+    cancelStartCb("Failed to start remote desktop session");
     return;
   } else if (responseCode == 2) {
     g_variant_unref(result);
-    cancelStartCb("RemoteDesktop::handleStart(): RemoteDesktop.Start failed");
+    vlog.error("Failed to start remote desktop session");
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
 
   sessionStarted = true;
 
   devices = g_variant_lookup_value(result, "devices", G_VARIANT_TYPE_UINT32);
+
+  if (!devices) {
+    g_variant_unref(result);
+    vlog.error("Failed to get devices");
+    cancelStartCb("Failed to start remote desktop session");
+    return;
+  }
+
   selectedDevices = g_variant_get_uint32(devices);
   g_variant_unref(devices);
 
-  streams_ = g_variant_lookup_value(result, "streams",
+  streams = g_variant_lookup_value(result, "streams",
                                     G_VARIANT_TYPE_ARRAY);
   g_variant_unref(result);
 
-  if (!parseStreams(streams_)) {
-    g_variant_unref(streams_);
-    fatal_error("Failed to parse streams");
+  if (!streams) {
+    vlog.error("Failed to start remote desktop session");
+    cancelStartCb("Failed to get streams");
     return;
   }
+
+  clipboardEnabled_ = g_variant_lookup_value(result,"clipboard_enabled",
+                                             G_VARIANT_TYPE_BOOLEAN);
+  if (clipboardEnabled_) {
+    clipboardEnabled = g_variant_get_boolean(clipboardEnabled_);
+    g_variant_unref(clipboardEnabled_);
+  }
+
+  if (clipboardEnabled)
+    clipboardSubscribeCb();
+
+  if (!parseStreams(streams)) {
+    vlog.error("Failed to parse streams");
+    cancelStartCb("Failed to start remote desktop session");
+    g_variant_unref(streams);
+    return;
+  }
+  g_variant_unref(streams);
 
   newRestoreToken = g_variant_lookup_value(result, "restore_token",
                                          G_VARIANT_TYPE_STRING);
 
-  storeRestoreToken(g_variant_get_string(newRestoreToken, nullptr));
-
-  g_variant_unref(newRestoreToken);
+  if (newRestoreToken) {
+    storeRestoreToken(g_variant_get_string(newRestoreToken, nullptr));
+    g_variant_unref(newRestoreToken);
+  } else {
+    vlog.info("Could not get restore token - display choice will not be saved");
+  }
 
   openPipewireRemote();
-  g_variant_unref(streams_);
 }
 
 void RemoteDesktop::handleSelectSources(GVariant* /* parameters */)
 {
+  if (Clipboard::available())
+    initClipboardCb();
+
   start();
 }
 
@@ -495,16 +591,17 @@ void RemoteDesktop::handleOpenPipewireRemote(GObject *proxy,
                                                         &error);
 
   if (error) {
-    std::string msg(error->message);
+    vlog.error("Could not start PipeWire remote: %s", error->message);
     g_error_free(error);
-    fatal_error("%s", msg.c_str());
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
 
   if (!g_variant_is_of_type(response, G_VARIANT_TYPE("(h)"))) {
     g_variant_unref(response);
-    fatal_error("%s", core::format("RemoteDesktop.handleOpenPipewireRemote: invalid response type: %s, expected (h)",
-                                   g_variant_get_type_string(response)).c_str());
+    vlog.error("Could not start PipeWire: invalid response type: %s",
+               g_variant_get_type_string(response));
+    cancelStartCb("Failed to start remote desktop session");
     return;
   }
 
@@ -515,10 +612,11 @@ void RemoteDesktop::handleOpenPipewireRemote(GObject *proxy,
   g_object_unref(fdList);
 
   if (error) {
-    std::string msg(error->message);
+    vlog.error("Could not start PipeWire remote: error getting fd list:  %s",
+               error->message);
     g_error_free(error);
-    fatal_error("%s", core::format("ScreenCast: error getting fd list:  %s",
-                                   msg.c_str()).c_str());
+    cancelStartCb("Failed to start remote desktop session");
+
     return;
   }
 
@@ -536,12 +634,12 @@ bool RemoteDesktop::parseStreams(GVariant* streams)
   n_streams = g_variant_iter_n_children(&iter);
 
   if (n_streams  < 1) {
-    fatal_error("RemoteDesktop.Start: could not find streams to parse");
+    vlog.error("Could not find streams to parse");
     return false;
   }
 
   if (n_streams != 1) {
-    vlog.error("RemoteDesktop.Start: only one stream supported, got %d",
+    vlog.error("Only one stream supported, got %d",
                n_streams);
   }
 
@@ -560,14 +658,14 @@ bool RemoteDesktop::loadRestoreToken()
   const char* stateDir;
   char restoreToken_[37];
 
-  if (askDisplayChoice == "Always")
+  if (rememberDisplayChoice == "Never")
     return false;
 
   // restoreToken will be empty the first time, we want to prompt the user
-  if (askDisplayChoice == "Once")
+  if (rememberDisplayChoice == "Session")
     return !restoreToken.empty();
 
-  assert(askDisplayChoice == "Never");
+  assert(rememberDisplayChoice == "Always");
 
   // Only load from disk the first time
   if (!restoreToken.empty())
@@ -616,16 +714,16 @@ bool RemoteDesktop::storeRestoreToken(const char* newToken)
     return false;
 
   // Don't store anything
-  if (askDisplayChoice == "Always")
+  if (rememberDisplayChoice == "Never")
     return true;
 
   // Store token in memory
   restoreToken = newToken;
 
-  if (askDisplayChoice == "Once")
+  if (rememberDisplayChoice == "Session")
     return true;
 
-  assert(askDisplayChoice == "Never");
+  assert(rememberDisplayChoice == "Always");
 
   // Store token to file so it can be re-used on next startup
   stateDir = core::getvncstatedir();
@@ -656,4 +754,3 @@ bool RemoteDesktop::storeRestoreToken(const char* newToken)
 
   return true;
 }
-

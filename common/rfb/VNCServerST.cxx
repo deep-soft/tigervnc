@@ -85,7 +85,7 @@ static core::LogWriter connectionsLog("Connections");
 // -=- Constructors/Destructor
 
 VNCServerST::VNCServerST(const char* name_, SDesktop* desktop_)
-  : blHosts(&blacklist), desktop(desktop_), desktopStarted(false),
+  : desktop(desktop_), desktopStarted(false),
     desktopStarting(false), blockCounter(0), pb(nullptr),
     ledState(ledUnknown), name(name_), pointerClient(nullptr),
     clipboardClient(nullptr), pointerClientTime(0),
@@ -137,12 +137,12 @@ VNCServerST::~VNCServerST()
 
 // VNCServer methods
 
-void VNCServerST::addSocket(network::Socket* sock, bool outgoing, AccessRights accessRights)
+bool VNCServerST::addSocket(network::Socket* sock, bool outgoing, AccessRights accessRights)
 {
   // - Check the connection isn't black-marked
   // *** do this in getSecurity instead?
   const char *address = sock->getPeerAddress();
-  if (blHosts->isBlackmarked(address)) {
+  if (blacklist.isBlackmarked(address)) {
     connectionsLog.error("Blacklisted: %s", address);
     try {
       rdr::OutStream& os = sock->outStream();
@@ -156,17 +156,10 @@ void VNCServerST::addSocket(network::Socket* sock, bool outgoing, AccessRights a
       os.flush();
     } catch (std::exception&) {
     }
-    sock->shutdown();
-    closingSockets.push_back(sock);
-    return;
+    return false;
   }
 
   connectionsLog.status("Accepted: %s", sock->getPeerEndpoint());
-
-  // Adjust the exit timers
-  if (rfb::Server::maxConnectionTime && clients.empty())
-    connectTimer.start(core::secsToMillis(rfb::Server::maxConnectionTime));
-  disconnectTimer.stop();
 
   try {
     VNCSConnectionST* client = new VNCSConnectionST(this, sock, outgoing, accessRights);
@@ -174,9 +167,10 @@ void VNCServerST::addSocket(network::Socket* sock, bool outgoing, AccessRights a
     client->init();
   } catch (std::exception& e) {
     connectionsLog.error("Error accepting client: %s", e.what());
-    sock->shutdown();
-    closingSockets.push_back(sock);
+    return false;
   }
+
+  return true;
 }
 
 void VNCServerST::removeSocket(network::Socket* sock) {
@@ -211,16 +205,17 @@ void VNCServerST::removeSocket(network::Socket* sock) {
         comparer->logStats();
 
       // Adjust the exit timers
-      connectTimer.stop();
-      if (rfb::Server::maxDisconnectionTime && clients.empty())
-        disconnectTimer.start(core::secsToMillis(rfb::Server::maxDisconnectionTime));
+      if (authClientCount() == 0) {
+        connectTimer.stop();
+        if (rfb::Server::maxDisconnectionTime)
+          disconnectTimer.start(core::secsToMillis(rfb::Server::maxDisconnectionTime));
+      }
 
       return;
     }
   }
 
-  // - If the Socket has no resources, it may have been a closingSocket
-  closingSockets.remove(sock);
+  throw std::invalid_argument("Invalid Socket in VNCServerST");
 }
 
 void VNCServerST::processSocketReadEvent(network::Socket* sock)
@@ -229,7 +224,7 @@ void VNCServerST::processSocketReadEvent(network::Socket* sock)
   std::list<VNCSConnectionST*>::iterator ci;
   for (ci = clients.begin(); ci != clients.end(); ci++) {
     if ((*ci)->getSock() == sock) {
-      (*ci)->processMessages();
+      (*ci)->processSocketReadEvent();
       return;
     }
   }
@@ -242,7 +237,7 @@ void VNCServerST::processSocketWriteEvent(network::Socket* sock)
   std::list<VNCSConnectionST*>::iterator ci;
   for (ci = clients.begin(); ci != clients.end(); ci++) {
     if ((*ci)->getSock() == sock) {
-      (*ci)->flushSocket();
+      (*ci)->processSocketWriteEvent();
       return;
     }
   }
@@ -688,10 +683,6 @@ void VNCServerST::getSockets(std::list<network::Socket*>* sockets)
   for (ci = clients.begin(); ci != clients.end(); ci++) {
     sockets->push_back((*ci)->getSock());
   }
-  std::list<network::Socket*>::iterator si;
-  for (si = closingSockets.begin(); si != closingSockets.end(); si++) {
-    sockets->push_back(*si);
-  }
 }
 
 SConnection* VNCServerST::getConnection(network::Socket* sock) {
@@ -748,7 +739,7 @@ void VNCServerST::queryConnection(VNCSConnectionST* client,
                                   const char* userName)
 {
   // - Authentication succeeded - clear from blacklist
-  blHosts->clearBlackmark(client->getSock()->getPeerAddress());
+  blacklist.clearBlackmark(client->getSock()->getPeerAddress());
 
   // - Prepare the desktop for that the client will start requiring
   // resources after this
@@ -782,6 +773,11 @@ void VNCServerST::queryConnection(VNCSConnectionST* client,
 
 void VNCServerST::clientReady(VNCSConnectionST* client, bool shared)
 {
+  // Adjust the exit timers
+  if (rfb::Server::maxConnectionTime && !connectTimer.isStarted())
+    connectTimer.start(core::secsToMillis(rfb::Server::maxConnectionTime));
+  disconnectTimer.stop();
+
   if (!shared) {
     if (rfb::Server::disconnectClients &&
         client->accessCheck(AccessNonShared)) {

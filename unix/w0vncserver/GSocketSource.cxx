@@ -22,6 +22,7 @@
 
 #include <assert.h>
 
+#include <exception>
 #include <map>
 
 #include <glib.h>
@@ -29,6 +30,7 @@
 #include <network/TcpSocket.h>
 #include <core/LogWriter.h>
 #include <rfb/VNCServerST.h>
+#include <rdr/FdInStream.h>
 #include <rdr/FdOutStream.h>
 
 #include "w0vncserver.h"
@@ -153,13 +155,13 @@ int GSocketSource::prepare(int* timeout)
     state = &fdMap[fd];
     assert(state->tag);
 
-    if (sock->isShutdown()) {
+    if (sock->isShutdownRead()) {
       vlog.debug("Client gone, sock %d", fd);
       g_source_remove_unix_fd(source, state->tag);
       server->removeSocket(sock);
       delete sock;
-      assert(fdMap.erase(fd));
-      return FALSE;
+      fdMap.erase(fd);
+      continue;
     }
 
     if (state->prevHadBufferedData != sock->outStream().hasBufferedData()) {
@@ -202,8 +204,8 @@ int GSocketSource::dispatch()
       g_source_remove_unix_fd(source, state.tag);
       server->removeSocket(sock);
       delete sock;
-      assert(fdMap.erase(fd));
-      return G_SOURCE_CONTINUE;
+      fdMap.erase(fd);
+      continue;
     }
 
     if (events & G_IO_IN)
@@ -238,7 +240,11 @@ int GSocketSource::handleListenerReady(ListenerReadyEvent* event)
     return G_SOURCE_CONTINUE;
   }
 
-  server->addSocket(sock);
+  if (!server->addSocket(sock)) {
+    delete sock;
+    return G_SOURCE_CONTINUE;
+  }
+
   fd = sock->getFd();
   tag = g_source_add_unix_fd(source, fd,
                              static_cast<GIOCondition>((G_IO_IN | G_IO_HUP | G_IO_ERR)));

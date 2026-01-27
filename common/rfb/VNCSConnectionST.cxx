@@ -22,6 +22,8 @@
 #include <config.h>
 #endif
 
+#include <assert.h>
+
 #include <core/LogWriter.h>
 #include <core/string.h>
 #include <core/time.h>
@@ -52,6 +54,11 @@
 
 using namespace rfb;
 
+// Number of seconds allowed for authentication
+static const unsigned LOGIN_GRACE_TIME = 120;
+// Number of seconds allowed to flush a closing socket
+static const unsigned CLOSE_GRACE_TIME = 5;
+
 static core::LogWriter vlog("VNCSConnST");
 
 static Cursor emptyCursor(0, 0, {0, 0}, nullptr);
@@ -59,7 +66,7 @@ static Cursor emptyCursor(0, 0, {0, 0}, nullptr);
 VNCSConnectionST::VNCSConnectionST(VNCServerST* server_, network::Socket *s,
                                    bool reverse, AccessRights ar)
   : SConnection(ar),
-    sock(s), reverseConnection(reverse),
+    sock(s), socketTimer(this), reverseConnection(reverse),
     inProcessMessages(false),
     pendingSyncFence(false), syncFence(false), fenceFlags(0),
     fenceDataLen(0), fenceData(nullptr), congestionTimer(this),
@@ -68,17 +75,10 @@ VNCSConnectionST::VNCSConnectionST(VNCServerST* server_, network::Socket *s,
     continuousUpdates(false), encodeManager(this), idleTimer(this),
     pointerEventTime(0), clientHasCursor(false)
 {
+  socketTimer.start(core::secsToMillis(LOGIN_GRACE_TIME));
+
   setStreams(&sock->inStream(), &sock->outStream());
   peerEndpoint = sock->getPeerEndpoint();
-
-  // Kick off the idle timer
-  if (rfb::Server::idleTimeout) {
-    // minimum of 15 seconds while authenticating
-    if (rfb::Server::idleTimeout < 15)
-      idleTimer.start(core::secsToMillis(15));
-    else
-      idleTimer.start(core::secsToMillis(rfb::Server::idleTimeout));
-  }
 }
 
 
@@ -131,7 +131,8 @@ void VNCSConnectionST::close(const char* reason)
   // Just shutdown the socket and mark our state as closing.  Eventually the
   // calling code will call VNCServerST's removeSocket() method causing us to
   // be deleted.
-  sock->shutdown();
+  sock->shutdownWrite();
+  socketTimer.start(core::secsToMillis(CLOSE_GRACE_TIME));
 }
 
 
@@ -149,9 +150,33 @@ bool VNCSConnectionST::init()
 }
 
 
-void VNCSConnectionST::processMessages()
+void VNCSConnectionST::processSocketReadEvent()
 {
-  if (state() == RFBSTATE_CLOSING) return;
+  // Are we flushing remaining incoming data?
+  if (state() == RFBSTATE_CLOSING) {
+    assert(getSock()->isShutdownWrite());
+
+    // Shouldn't really get called if we've already finished reading,
+    // but let's be lenient
+    if (getSock()->isShutdownRead())
+      return;
+
+    // Do a graceful close by waiting for the peer to close their end
+    while (true) {
+      try {
+        getInStream()->skip(getInStream()->avail());
+        if (!getInStream()->hasData(1))
+          break;
+      } catch (std::exception&) {
+        // Handle both graceful close and resets
+        getSock()->shutdownRead();
+        break;
+      }
+    }
+
+    return;
+  }
+
   try {
     inProcessMessages = true;
 
@@ -189,7 +214,7 @@ void VNCSConnectionST::processMessages()
   }
 }
 
-void VNCSConnectionST::flushSocket()
+void VNCSConnectionST::processSocketWriteEvent()
 {
   if (state() == RFBSTATE_CLOSING) return;
   try {
@@ -453,6 +478,8 @@ void VNCSConnectionST::approveConnectionOrClose(bool accept,
 
 void VNCSConnectionST::authSuccess()
 {
+  socketTimer.stop();
+
   if (rfb::Server::idleTimeout)
     idleTimer.start(core::secsToMillis(rfb::Server::idleTimeout));
 }
@@ -813,6 +840,13 @@ void VNCSConnectionST::supportsLEDState()
 
 void VNCSConnectionST::handleTimeout(core::Timer* t)
 {
+  if (t == &socketTimer) {
+    if (state() == RFBSTATE_CLOSING)
+      getSock()->shutdownRead();
+    else
+      close("Authentication timeout");
+  }
+
   try {
     if ((t == &congestionTimer) ||
         (t == &losslessTimer))

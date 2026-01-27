@@ -44,6 +44,10 @@ arbitrary.
 .SH PARAMETERS
 
 .TP
+.B \-AcceptCutText
+Accept clipboard updates from clients. Default is on.
+.
+.TP
 .B \-AcceptKeyEvents
 Accept key press and release events from clients. Default is on.
 .
@@ -55,16 +59,6 @@ Accept pointer movement and button events from clients. Default is on.
 .B \-AlwaysShared
 Always treat incoming connections as shared, regardless of the client-specified
 setting. Default is off.
-.
-.TP
-.B \-AskDisplayChoice \fImode\fP
-Ask which displays to share when a user connects. Can be either
-\fBAlways\fP, \fBOnce\fP, or \fBNever\fP. Choosing \fBAlways\fP means a
-prompt dialog will be be shown every time a user connects to the server.
-\fBOnce\fP means a prompt will be shown only once during the program's
-lifetime. When choosing \fBNever\fP, the choice you make will be
-remembered and persist. To reset your choice, see
-\fBw0vncserver-forget\fP(1). Default is \fBOnce\fP.
 .
 .TP
 .B \-BlacklistThreshold \fIcount\fP
@@ -138,6 +132,11 @@ is \fB*:stderr:30\fP.
 .B \-MaxConnectionTime \fIseconds\fP
 Terminate when a client has been connected for \fIN\fP seconds.  Default is
 0.
+.TP
+.B \-MaxCutText \fIbytes\fP
+The maximum permitted size of an incoming clipboard update.
+Default is \fB262144\fP.
+.
 .
 .TP
 .B \-MaxDisconnectionTime \fIseconds\fP
@@ -212,6 +211,16 @@ RemapKeys=0x22<>0x40
 .RE
 .
 .TP
+.B \-RememberDisplayChoice \fImode\fP
+Remember display choice when a user connects. Can be either
+\fBAlways\fP, \fBNever\fP, or \fBSession\fP. Choosing \fBNever\fP means
+a prompt dialog will be be shown every time a user connects to the
+server. \fBSession\fP means a prompt will be shown only once during the
+program's lifetime. When choosing \fBAlways\fP, the choice you make will
+be remembered and persist. To reset your choice, see
+\fBw0vncserver-forget\fP(1). Default is \fBSession\fP.
+.
+.TP
 .B \-RequireUsername
 Require username for the RSA-AES security types. Default is off.
 .
@@ -244,6 +253,10 @@ are a comma separated list of \fBNone\fP, \fBVncAuth\fP, \fBPlain\fP,
 \fBTLSNone\fP, \fBTLSVnc\fP, \fBTLSPlain\fP, \fBX509None\fP, \fBX509Vnc\fP,
 \fBX509Plain\fP, \fBRA2\fP, \fBRA2ne\fP, \fBRA2_256\fP and \fBRA2ne_256\fP.
 Default is \fBTLSVnc,VncAuth\fP.
+.
+.TP
+.B \-SendCutText
+Send clipboard changes to clients. Default is on.
 .
 .TP
 .B \-UseBlacklist
