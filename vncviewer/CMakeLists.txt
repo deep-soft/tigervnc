@@ -10,11 +10,11 @@ add_executable(vncviewer
   fltk/Fl_Navigation.cxx
   fltk/event_dispatch_handler.cxx
   fltk/theme.cxx
+  AuthDialog.cxx
   BaseTouchHandler.cxx
   CConn.cxx
   DesktopWindow.cxx
   EmulateMB.cxx
-  UserDialog.cxx
   ServerDialog.cxx
   ShortcutHandler.cxx
   Surface.cxx
@@ -47,6 +47,7 @@ elseif(APPLE)
   target_sources(vncviewer PRIVATE KeyboardMacOS.mm osx_to_qnum.c keysym2ucs.c)
   target_sources(vncviewer PRIVATE Surface_OSX.cxx)
 else()
+  target_sources(vncviewer PRIVATE x11.cxx)
   target_sources(vncviewer PRIVATE GestureHandler.cxx XInputTouchHandler.cxx)
   target_sources(vncviewer PRIVATE KeyboardX11.cxx xkb_to_qnum.c)
   target_sources(vncviewer PRIVATE Surface_X11.cxx)
@@ -57,6 +58,15 @@ target_include_directories(vncviewer SYSTEM PUBLIC ${Intl_INCLUDE_DIR})
 target_include_directories(vncviewer PUBLIC ${CMAKE_SOURCE_DIR}/common)
 target_link_libraries(vncviewer core rfb network rdr)
 target_link_libraries(vncviewer ${FLTK_LIBRARIES} ${Intl_LIBRARIES})
+
+if(GNUTLS_FOUND)
+  target_include_directories(vncviewer SYSTEM PUBLIC ${GNUTLS_INCLUDE_DIR})
+  target_link_libraries(vncviewer ${GNUTLS_LIBRARIES})
+  # FIXME: Hack to block it marking gnutls_free() as dllimport
+  if(WIN32 AND BUILD_STATIC)
+    target_compile_definitions(vncviewer PRIVATE GNUTLS_INTERNAL_BUILD)
+  endif()
+endif()
 
 if(WIN32)
   target_link_libraries(vncviewer msimg32)

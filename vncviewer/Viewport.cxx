@@ -742,8 +742,22 @@ void Viewport::handleKeyPress(int systemKeyCode,
           break;
       }
 
-      vlog.debug("Detected shortcut %d => 0x%02x / XK_%s (0x%04x)",
-                 systemKeyCode, keyCode, KeySymName(keySym), keySym);
+      if (keySym != NoSymbol) {
+        vlog.debug("Detected shortcut %d => 0x%02x / XK_%s (0x%04x)",
+                  systemKeyCode, keyCode, KeySymName(keySym), keySym);
+      } else {
+        std::string names;
+
+        for (iter = keySyms.begin(); iter != keySyms.end(); iter++) {
+          if (!names.empty())
+            names += ", ";
+          names += core::format("XK_%s (0x%04x)",
+                                KeySymName(*iter), *iter);
+        }
+
+        vlog.debug("Detected unknown shortcut %d => 0x%02x / %s",
+                   systemKeyCode, keyCode, names.c_str());
+      }
 
       // Special case which we need to handle first
       if (keySym == XK_space) {
@@ -951,7 +965,6 @@ void Viewport::initContextMenu()
 void Viewport::popupContextMenu()
 {
   const Fl_Menu_Item *m;
-  char buffer[1024];
 
   // Make sure the menu is reset to its initial state between goes or
   // it will start up highlighting the previously selected entry.
@@ -1033,11 +1046,8 @@ void Viewport::popupContextMenu()
     OptionsDialog::showDialog();
     break;
   case ID_INFO:
-    if (fltk_escape(cc->connectionInfo().c_str(),
-                    buffer, sizeof(buffer)) < sizeof(buffer)) {
-      fl_message_title(_("VNC connection info"));
-      fl_message("%s", buffer);
-    }
+    fl_message_title(_("VNC connection info"));
+    fl_message("%s", fltk_escape(cc->connectionInfo().c_str()).c_str());
     break;
   case ID_ABOUT:
     about_vncviewer();

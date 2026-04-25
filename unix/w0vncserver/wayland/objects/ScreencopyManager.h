@@ -1,4 +1,4 @@
-/* Copyright 2025 Adam Halim for Cendio AB
+/* Copyright 2025-2026 Adam Halim for Cendio AB
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <core/Region.h>
 #include <rfb/PixelFormat.h>
 
+#include "Shm.h"
 #include "Object.h"
 
 struct wl_buffer;
@@ -43,7 +44,8 @@ namespace wayland {
   class ScreencopyManager : public Object {
   public:
     ScreencopyManager(Display* display, Output* output,
-                      std::function<void(uint8_t*, core::Region, rfb::PixelFormat)> readyCallback);
+                      std::function<void(uint8_t*, core::Region, uint32_t, uint32_t)> readyCallback,
+                      std::function<void()> stoppedCb);
     virtual ~ScreencopyManager();
 
     // Called when the remote output is resized
@@ -60,9 +62,10 @@ namespace wayland {
     // Called when the buffer is safe to read from, the frame is ready.
     void captureFrameDone();
 
+    void stopped();
+
   private:
     void initBuffers(size_t size);
-    rfb::PixelFormat convertPixelformat(uint32_t format);
 
     // zwlr_screencopy_frame_v1_listener handlers
     void handleScreencopyBuffer(uint32_t format, uint32_t width, uint32_t height,
@@ -78,17 +81,19 @@ namespace wayland {
 
   protected:
     Output* output;
+    bool active;
 
   private:
     zwlr_screencopy_manager_v1* screencopyManager;
     zwlr_screencopy_frame_v1* frame;
     BufferInfo* info;
-    Shm* shm;
+    Shm shm;
     ShmPool* pool;
     wl_buffer* buffer;
     core::Region accumulatedDamage;
     rfb::PixelFormat pf;
-    std::function<void(uint8_t*, core::Region, rfb::PixelFormat)> bufferEventCb;
+    std::function<void(uint8_t*, core::Region, uint32_t, uint32_t)> bufferEventCb;
+    std::function<void()> stoppedCb;
     static const zwlr_screencopy_frame_v1_listener listener;
   };
 };

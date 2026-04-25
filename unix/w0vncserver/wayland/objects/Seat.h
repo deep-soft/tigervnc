@@ -1,4 +1,4 @@
-/* Copyright 2025 Adam Halim for Cendio AB
+/* Copyright 2025-2026 Adam Halim for Cendio AB
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ struct wl_seat_listener;
 namespace wayland {
   class Display;
   class Keyboard;
+  class Pointer;
 
   class Seat : public Object {
   public:
@@ -37,6 +38,7 @@ namespace wayland {
 
     wl_seat* getSeat() const { return seat; }
     Keyboard* getKeyboard() const { return keyboard; }
+    Pointer* getPointer() const { return pointer; }
 
   private:
     void seatCapabilities(uint32_t capabilities);
@@ -45,6 +47,7 @@ namespace wayland {
     wl_seat* seat;
     Display* display;
     Keyboard* keyboard;
+    Pointer* pointer;
     static const wl_seat_listener listener;
     std::function<void(unsigned int)> setLEDstate;
   };

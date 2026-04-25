@@ -22,9 +22,9 @@
 
 #include <FL/Fl.H>
 
-#include <rfb/CConnection.h>
+#include <core/Timer.h>
 
-#include "UserDialog.h"
+#include <rfb/CConnection.h>
 
 namespace network { class Socket; }
 
@@ -49,15 +49,17 @@ protected:
   // Callback when socket is ready (or broken)
   static void socketEvent(FL_SOCKET fd, void *data);
 
-  // Forget any saved password
-  void resetPassword();
+  void processNextMsg(core::Timer*);
 
   // CConnection callback methods
 
-  bool showMsgBox(rfb::MsgBoxFlags flags, const char *title,
-                  const char *text) override;
   void getUserPasswd(bool secure, std::string *user,
                      std::string *password) override;
+  bool verifyCertificate(unsigned int status,
+                         const uint8_t* certificate,
+                         size_t length) override;
+  bool verifyHostKey(const uint8_t* key, size_t length,
+                     const char* fingerprint) override;
 
   void initDone() override;
 
@@ -100,6 +102,7 @@ private:
   std::string serverHost;
   int serverPort;
   network::Socket* sock;
+  core::MethodTimer<CConn> msgTimer;
 
   DesktopWindow *desktop;
 
@@ -114,7 +117,8 @@ private:
   size_t updateStartPos;
   unsigned long long bpsEstimate;
 
-  UserDialog dlg;
+  static std::string savedUsername;
+  static std::string savedPassword;
 };
 
 #endif

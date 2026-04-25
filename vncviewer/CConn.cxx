@@ -27,19 +27,27 @@
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_GNUTLS
+#include <gnutls/x509.h>
+#endif
+
+#include <core/Exception.h>
 #include <core/LogWriter.h>
 #include <core/Timer.h>
 #include <core/string.h>
 #include <core/time.h>
+#include <core/xdgdirs.h>
 
 #include <rdr/FdInStream.h>
 #include <rdr/FdOutStream.h>
+#include <rdr/TLSException.h>
 
 #include <rfb/CMsgWriter.h>
 #include <rfb/CSecurity.h>
 #include <rfb/Exception.h>
 #include <rfb/Security.h>
 #include <rfb/fenceTypes.h>
+#include <rfb/obfuscate.h>
 #include <rfb/screenTypes.h>
 
 #include <network/TcpSocket.h>
@@ -50,6 +58,9 @@
 #include <FL/Fl.H>
 #include <FL/fl_ask.H>
 
+#include "fltk/layout.h"
+#include "fltk/util.h"
+#include "AuthDialog.h"
 #include "CConn.h"
 #include "OptionsDialog.h"
 #include "DesktopWindow.h"
@@ -57,6 +68,9 @@
 #include "i18n.h"
 #include "parameters.h"
 #include "vncviewer.h"
+
+std::string CConn::savedUsername;
+std::string CConn::savedPassword;
 
 #ifdef WIN32
 #include "win32.h"
@@ -78,7 +92,8 @@ static const rfb::PixelFormat mediumColourPF(8, 8, false, true,
 static const unsigned bpsEstimateWindow = 1000;
 
 CConn::CConn()
-  : serverPort(0), sock(nullptr), desktop(nullptr),
+  : serverPort(0), sock(nullptr),
+    msgTimer(this, &CConn::processNextMsg), desktop(nullptr),
     updateCount(0), pixelCount(0),
     lastServerEncoding((unsigned int)-1), bpsEstimate(20000000)
 {
@@ -245,42 +260,39 @@ unsigned CConn::getPosition()
 void CConn::socketEvent(FL_SOCKET fd, void *data)
 {
   CConn *cc;
-  static bool recursing = false;
-  int when;
 
   assert(data);
   cc = (CConn*)data;
+
+  // Stop monitoring the socket for now and start processing incoming
+  // data asynchronously
+  Fl::remove_fd(fd);
+  cc->msgTimer.start(0);
+
+  // Coalesce data until we're fully done processing things
+  cc->getOutStream()->cork(true);
+}
+
+void CConn::processNextMsg(core::Timer*)
+{
+  static bool recursing = false;
+  bool again;
+  int when;
 
   // I don't think processMsg() is recursion safe, so add this check
   assert(!recursing);
 
   recursing = true;
-  Fl::remove_fd(fd);
 
+  again = false;
   try {
     // We might have been called to flush unwritten socket data
-    cc->sock->outStream().flush();
+    sock->outStream().flush();
 
-    cc->getOutStream()->cork(true);
-
-    // processMsg() only processes one message, so we need to loop
-    // until the buffers are empty or things will stall.
-    while (cc->processMsg()) {
-
-      // Make sure that the FLTK handling and the timers gets some CPU
-      // time in case of back to back messages
-      Fl::check();
-      core::Timer::checkTimeouts();
-
-      // Also check if we need to stop reading and terminate
-      if (should_disconnect())
-        break;
-    }
-
-    cc->getOutStream()->cork(false);
+    again = processMsg();
   } catch (rdr::end_of_stream& e) {
     vlog.info("%s", e.what());
-    if (!cc->desktop) {
+    if (!desktop) {
       vlog.error(_("The connection was dropped by the server before "
                    "the session could be established."));
       abort_connection(_("The connection was dropped by the server "
@@ -292,7 +304,8 @@ void CConn::socketEvent(FL_SOCKET fd, void *data)
     vlog.info("%s", e.what());
     disconnect();
   } catch (rfb::auth_error& e) {
-    cc->resetPassword();
+    savedUsername.clear();
+    savedPassword.clear();
     vlog.error(_("Authentication failed: %s"), e.what());
     abort_connection(_("Failed to authenticate with the server. Reason "
                        "given by the server:\n\n%s"), e.what());
@@ -301,31 +314,100 @@ void CConn::socketEvent(FL_SOCKET fd, void *data)
     abort_connection_with_unexpected_error(e);
   }
 
+  recursing = false;
+
+  if (again) {
+    msgTimer.repeat();
+    return;
+  }
+
+  // Out of data, go back to waiting
+
+  getOutStream()->cork(false);
+
   when = FL_READ | FL_EXCEPT;
-  if (cc->sock->outStream().hasBufferedData())
+  if (sock->outStream().hasBufferedData())
     when |= FL_WRITE;
 
-  Fl::add_fd(fd, when, socketEvent, data);
-  recursing = false;
-}
-
-void CConn::resetPassword()
-{
-    dlg.resetPassword();
+  Fl::add_fd(sock->getFd(), when, socketEvent, this);
 }
 
 ////////////////////// CConnection callback methods //////////////////////
 
-bool CConn::showMsgBox(rfb::MsgBoxFlags flags, const char *title,
-                       const char *text)
-{
-    return dlg.showMsgBox(flags, title, text);
-}
-
 void CConn::getUserPasswd(bool secure, std::string *user,
                           std::string *password)
 {
-    dlg.getUserPasswd(secure, user, password);
+  const char *passwordFileName(passwordFile);
+  int ret_val;
+
+  assert(password);
+  char *envUsername = getenv("VNC_USERNAME");
+  char *envPassword = getenv("VNC_PASSWORD");
+
+  if(user && envUsername && envPassword) {
+    *user = envUsername;
+    *password = envPassword;
+    return;
+  }
+
+  if (!user && envPassword) {
+    *password = envPassword;
+    return;
+  }
+
+  if (user && !savedUsername.empty() && !savedPassword.empty()) {
+    *user = savedUsername;
+    *password = savedPassword;
+    return;
+  }
+
+  if (!user && !savedPassword.empty()) {
+    *password = savedPassword;
+    return;
+  }
+
+  if (!user && passwordFileName[0]) {
+    std::vector<uint8_t> obfPwd(8);
+    FILE* fp;
+
+    fp = fopen(passwordFileName, "rb");
+    if (!fp)
+      throw core::posix_error(_("Opening password file failed"), errno);
+
+    obfPwd.resize(fread(obfPwd.data(), 1, obfPwd.size(), fp));
+    fclose(fp);
+
+    *password = rfb::deobfuscate(obfPwd.data(), obfPwd.size());
+
+    return;
+  }
+
+  AuthDialog d(secure, user != nullptr, password != nullptr);
+  d.show();
+  while (d.shown())
+    Fl::wait();
+  ret_val = d.result();
+
+  if (ret_val == 1) {
+    bool keepPasswd;
+
+    if (reconnectOnError)
+      keepPasswd = d.getKeepPassword();
+    else
+      keepPasswd = false;
+
+    if (user) {
+      *user = d.getUser();
+      if (keepPasswd)
+        savedUsername = d.getUser();
+    }
+    *password = d.getPassword();
+    if (keepPasswd)
+      savedPassword = d.getPassword();
+  }
+
+  if (ret_val != 1)
+    throw rfb::auth_cancelled();
 }
 
 // initDone() is called when the serverInit message has been received.  At
@@ -344,6 +426,391 @@ void CConn::initDone()
   // Force a switch to the format and encoding we'd like
   updateEncoding();
   updatePixelFormat();
+}
+
+bool CConn::verifyCertificate(unsigned int status,
+                              const uint8_t* certificate, size_t length)
+{
+#ifndef HAVE_GNUTLS
+  throw rdr::Exception(_("TLS support not enabled"));
+#else
+  const unsigned allowed_errors =
+    GNUTLS_CERT_INVALID |
+    GNUTLS_CERT_SIGNER_NOT_FOUND |
+    GNUTLS_CERT_SIGNER_NOT_CA |
+    GNUTLS_CERT_NOT_ACTIVATED |
+    GNUTLS_CERT_EXPIRED |
+    GNUTLS_CERT_INSECURE_ALGORITHM |
+    GNUTLS_CERT_UNEXPECTED_OWNER;
+  gnutls_datum_t status_str;
+  unsigned int fatal_status;
+
+  gnutls_datum_t cert_datum;
+  gnutls_x509_crt_t crt;
+  int err, known;
+
+  const char *hostsDir;
+  gnutls_datum_t info_datum;
+  std::string info;
+  size_t len;
+
+  assert(status != 0);
+
+  fatal_status = status & (~allowed_errors);
+
+  if (fatal_status != 0) {
+    err = gnutls_certificate_verification_status_print(fatal_status,
+                                                       GNUTLS_CRT_X509,
+                                                       &status_str,
+                                                       0);
+    if (err != GNUTLS_E_SUCCESS)
+      throw rdr::tls_error(_("Failed to get certificate problem "
+                             "description"), err);
+
+    abort_connection(_("Invalid server certificate: %s"),
+                     status_str.data);
+
+    gnutls_free(status_str.data);
+
+    return false;
+  }
+
+  err = gnutls_certificate_verification_status_print(status,
+                                                     GNUTLS_CRT_X509,
+                                                     &status_str,
+                                                     0);
+  if (err != GNUTLS_E_SUCCESS)
+    throw rdr::tls_error(_("Failed to get certificate problem "
+                           "description"), err);
+
+  vlog.info(_("Server certificate problems: %s"), status_str.data);
+
+  gnutls_free(status_str.data);
+
+  /* Certificate has some user overridable problems, so TOFU time */
+
+  hostsDir = core::getvncstatedir();
+  if (hostsDir == nullptr) {
+    throw std::runtime_error(_("Could not determine VNC state "
+                               "directory path"));
+  }
+
+  std::string dbPath;
+  dbPath = (std::string)hostsDir + "/x509_known_hosts";
+
+  cert_datum.data = (uint8_t*)certificate;
+  cert_datum.size = length;
+
+  known = gnutls_verify_stored_pubkey(dbPath.c_str(), nullptr,
+                                      getServerName(), nullptr,
+                                      GNUTLS_CRT_X509, &cert_datum, 0);
+
+  /* Previously known? */
+  if (known == GNUTLS_E_SUCCESS) {
+    vlog.info(_("Server has an existing security exception"));
+    return true;
+  }
+
+  if ((known != GNUTLS_E_NO_CERTIFICATE_FOUND) &&
+      (known != GNUTLS_E_CERTIFICATE_KEY_MISMATCH))
+    throw rdr::tls_error(_("Failed to load list of servers with a "
+                           "security exception"), known);
+
+  gnutls_x509_crt_init(&crt);
+  err = gnutls_x509_crt_import(crt, &cert_datum, GNUTLS_X509_FMT_DER);
+  if (err != GNUTLS_E_SUCCESS)
+    throw rdr::tls_error(_("Failed to decode server certificate"), err);
+
+  err = gnutls_x509_crt_print(crt, GNUTLS_CRT_PRINT_ONELINE,
+                              &info_datum);
+  gnutls_x509_crt_deinit(crt);
+  if (err != GNUTLS_E_SUCCESS)
+    throw rdr::tls_error(_("Failed to format server certificate for "
+                           "display"), err);
+
+  len = strlen((char*)info_datum.data);
+  for (size_t i = 0; i < len - 1; i++) {
+    if (info_datum.data[i] == ',' && info_datum.data[i + 1] == ' ')
+      info_datum.data[i] = '\n';
+  }
+
+  info = (const char*)info_datum.data;
+
+  gnutls_free(info_datum.data);
+
+  /* New host */
+  if (known == GNUTLS_E_NO_CERTIFICATE_FOUND) {
+    std::string text;
+
+    vlog.info(_("Server host is not previously known"));
+    vlog.info("%s", info.c_str());
+
+    if (status & (GNUTLS_CERT_INVALID |
+                  GNUTLS_CERT_SIGNER_NOT_FOUND |
+                  GNUTLS_CERT_SIGNER_NOT_CA)) {
+      text = core::format(_(
+        "This certificate has been signed by an unknown authority:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Unknown certificate issuer"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~(GNUTLS_CERT_INVALID |
+                  GNUTLS_CERT_SIGNER_NOT_FOUND |
+                  GNUTLS_CERT_SIGNER_NOT_CA);
+    }
+
+    if (status & GNUTLS_CERT_NOT_ACTIVATED) {
+      text = core::format(_(
+        "This certificate is not yet valid:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Certificate is not yet valid"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_NOT_ACTIVATED;
+    }
+
+    if (status & GNUTLS_CERT_EXPIRED) {
+      text = core::format(_(
+        "This certificate has expired:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Expired certificate"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_EXPIRED;
+    }
+
+    if (status & GNUTLS_CERT_INSECURE_ALGORITHM) {
+      text = core::format(_(
+        "This certificate uses an insecure algorithm:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Insecure certificate algorithm"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_INSECURE_ALGORITHM;
+    }
+
+    if (status & GNUTLS_CERT_UNEXPECTED_OWNER) {
+      text = core::format(_(
+        "The specified hostname \"%s\" does not match the certificate "
+        "provided by the server:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        getServerName(), info.c_str());
+
+      fl_message_title(_("Certificate hostname mismatch"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_UNEXPECTED_OWNER;
+    }
+
+    if (status != 0) {
+      vlog.error(_("Unhandled server certificate problems: 0x%x"),
+                 status);
+      throw std::logic_error(_("Unhandled server certificate problems"));
+    }
+  } else if (known == GNUTLS_E_CERTIFICATE_KEY_MISMATCH) {
+    std::string text;
+
+    vlog.info(_("Server host certificate has changed"));
+    vlog.info("%s", info.c_str());
+
+    if (status & (GNUTLS_CERT_INVALID |
+                  GNUTLS_CERT_SIGNER_NOT_FOUND |
+                  GNUTLS_CERT_SIGNER_NOT_CA)) {
+      text = core::format(_(
+        "This host is previously known with a different certificate, "
+        "and the new certificate has been signed by an unknown "
+        "authority:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Unexpected server certificate"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~(GNUTLS_CERT_INVALID |
+                  GNUTLS_CERT_SIGNER_NOT_FOUND |
+                  GNUTLS_CERT_SIGNER_NOT_CA);
+    }
+
+    if (status & GNUTLS_CERT_NOT_ACTIVATED) {
+      text = core::format(_(
+        "This host is previously known with a different certificate, "
+        "and the new certificate is not yet valid:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Unexpected server certificate"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_NOT_ACTIVATED;
+    }
+
+    if (status & GNUTLS_CERT_EXPIRED) {
+      text = core::format(_(
+        "This host is previously known with a different certificate, "
+        "and the new certificate has expired:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Unexpected server certificate"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_EXPIRED;
+    }
+
+    if (status & GNUTLS_CERT_INSECURE_ALGORITHM) {
+      text = core::format(_(
+        "This host is previously known with a different certificate, "
+        "and the new certificate uses an insecure algorithm:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        info.c_str());
+
+      fl_message_title(_("Unexpected server certificate"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_INSECURE_ALGORITHM;
+    }
+
+    if (status & GNUTLS_CERT_UNEXPECTED_OWNER) {
+      text = core::format(_(
+        "This host is previously known with a different certificate, "
+        "and the specified hostname \"%s\" does not match the new "
+        "certificate provided by the server:\n"
+        "\n"
+        "%s\n"
+        "\n"
+        "Someone could be trying to impersonate the site and you "
+        "should not continue.\n"
+        "\n"
+        "Do you want to make an exception for this server?"),
+        getServerName(), info.c_str());
+
+      fl_message_title(_("Unexpected server certificate"));
+      if (fl_choice("%s", nullptr, fl_cancel, _("Add exception"),
+                    fltk_escape(text).c_str()) != 2)
+        return false;
+
+      status &= ~GNUTLS_CERT_UNEXPECTED_OWNER;
+    }
+
+    if (status != 0) {
+      vlog.error(_("Unhandled server certificate problems: 0x%x"),
+                 status);
+      throw std::logic_error(_("Unhandled server certificate problems"));
+    }
+  }
+
+  if (gnutls_store_pubkey(dbPath.c_str(), nullptr,
+                          getServerName(), nullptr,
+                          GNUTLS_CRT_X509, &cert_datum, 0, 0))
+    vlog.error(_("Failed to store server certificate to list of "
+                 "servers with a security exception"));
+
+  vlog.info(_("Security exception added for server host"));
+
+  return true;
+#endif
+}
+
+bool CConn::verifyHostKey(const uint8_t* key, size_t length,
+                          const char* fingerprint)
+{
+  std::string text = core::format(
+    _("The server has provided the following identifying information:\n"
+      "\n"
+      "Fingerprint: %s\n"
+      "\n"
+      "Do you want to continue connecting to this server?"),
+    fingerprint);
+  fl_message_title(_("Verify server key"));
+  if (fl_choice("%s", nullptr, fl_cancel, _("Continue"),
+                fltk_escape(text).c_str()) != 2)
+    return false;
+
+  // FIXME: Should save this for TOFU
+  (void)key;
+  (void)length;
+
+  return true;
 }
 
 void CConn::setExtendedDesktopSize(unsigned reason, unsigned result,

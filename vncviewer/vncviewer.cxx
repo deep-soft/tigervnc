@@ -1,5 +1,5 @@
 /* Copyright (C) 2002-2005 RealVNC Ltd.  All Rights Reserved.
- * Copyright 2011 Pierre Ossman <ossman@cendio.se> for Cendio AB
+ * Copyright 2011-2024 Pierre Ossman <ossman@cendio.se> for Cendio AB
  * Copyright (C) 2011 D. R. Commander.  All Rights Reserved.
  * 
  * This is free software; you can redistribute it and/or modify
@@ -43,15 +43,11 @@
 #include <Carbon/Carbon.h>
 #endif
 
-#if !defined(WIN32) && !defined(__APPLE__)
-#include <X11/Xlib.h>
-#include <X11/XKBlib.h>
-#endif
-
 #include <core/Exception.h>
 #include <core/Logger_stdio.h>
 #include <core/LogWriter.h>
 #include <core/Timer.h>
+#include <core/string.h>
 
 #ifdef HAVE_GNUTLS
 #include <rfb/CSecurityTLS.h>
@@ -64,7 +60,6 @@
 #include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
 #include <FL/fl_ask.H>
-#include <FL/x.H>
 
 #include "fltk/theme.h"
 #include "fltk/util.h"
@@ -72,7 +67,6 @@
 #include "parameters.h"
 #include "CConn.h"
 #include "ServerDialog.h"
-#include "UserDialog.h"
 #include "touch.h"
 #include "vncviewer.h"
 
@@ -161,11 +155,6 @@ void abort_connection_with_unexpected_error(const std::exception &e) {
 void disconnect()
 {
   exitMainloop = true;
-}
-
-bool should_disconnect()
-{
-  return exitMainloop;
 }
 
 void about_vncviewer()
@@ -417,16 +406,15 @@ static void init_fltk()
   fl_mac_set_about(about_callback, nullptr);
 
   Fl_Sys_Menu_Bar *menubar;
-  char buffer[1024];
   menubar = new Fl_Sys_Menu_Bar(0, 0, 500, 25);
   // Fl_Sys_Menu_Bar overrides methods without them being virtual,
   // which means we cannot use our generic Fl_Menu_ helpers.
-  if (fltk_menu_escape(p_("SysMenu|", "&File"),
-                       buffer, sizeof(buffer)) < sizeof(buffer))
-      menubar->add(buffer, 0, nullptr, nullptr, FL_SUBMENU);
-  if (fltk_menu_escape(p_("SysMenu|File|", "&New Connection"),
-                       buffer, sizeof(buffer)) < sizeof(buffer))
-      menubar->insert(1, buffer, FL_COMMAND | 'n', new_connection_cb);
+  menubar->add(
+    fltk_menu_escape(p_("SysMenu|", "&File")).c_str(),
+    0, nullptr, nullptr, FL_SUBMENU);
+  menubar->insert(
+    1, fltk_menu_escape(p_("SysMenu|File|", "&New Connection")).c_str(),
+    FL_COMMAND | 'n', new_connection_cb);
 #endif
 }
 
@@ -517,22 +505,6 @@ potentiallyLoadConfigurationFile(const char *filename)
       abort_vncviewer(_("Unable to load the specified configuration "
                         "file:\n\n%s"), e.what());
     }
-  }
-}
-
-static void
-migrateDeprecatedOptions()
-{
-  if (fullScreenAllMonitors) {
-    vlog.info(_("FullScreenAllMonitors is deprecated, set FullScreenMode to 'all' instead"));
-
-    fullScreenMode.setParam("all");
-  }
-  if (dotWhenNoCursor) {
-    vlog.info(_("DotWhenNoCursor is deprecated, set AlwaysCursor to 1 and CursorType to 'Dot' instead"));
-
-    alwaysCursor.setParam(true);
-    cursorType.setParam("Dot");
   }
 }
 
@@ -655,7 +627,20 @@ int main(int argc, char** argv)
 
   core::initStdIOLoggers();
 #ifdef WIN32
-  core::initFileLogger("C:\\temp\\vncviewer.log");
+  const char* tmp;
+  struct stat st;
+  std::string logfn;
+
+  tmp = getenv("TMP");
+  if ((tmp == nullptr) || (stat(tmp, &st) != 0))
+    tmp = getenv("TEMP");
+  if ((tmp == nullptr) || (stat(tmp, &st) != 0))
+    tmp = getenv("USERPROFILE");
+  if ((tmp == nullptr) || (stat(tmp, &st) != 0))
+    tmp = "C:\\temp";
+
+  logfn = core::format("%s\\vncviewer.log", tmp);
+  core::initFileLogger(logfn.c_str());
 #else
   core::initFileLogger("/tmp/vncviewer.log");
 #endif
@@ -722,12 +707,14 @@ int main(int argc, char** argv)
     i++;
   }
 
+  // Handle any old settings specified on the command line
+  migrateDeprecatedOptions();
+
 #if !defined(WIN32) && !defined(__APPLE__)
   if (strcmp(display, "") != 0) {
     Fl::display(display);
   }
   fl_open_display();
-  XkbSetDetectableAutoRepeat(fl_display, True, nullptr);
 #endif
 
   init_fltk();
@@ -735,8 +722,6 @@ int main(int argc, char** argv)
 
   // Check if the server name in reality is a configuration file
   potentiallyLoadConfigurationFile(vncServerName);
-
-  migrateDeprecatedOptions();
 
   create_base_dirs();
 
